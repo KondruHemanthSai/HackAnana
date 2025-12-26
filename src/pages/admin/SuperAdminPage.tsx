@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Users, ShieldCheck, Search, UserCog,
@@ -39,11 +41,34 @@ const roleConfig: Record<UserRole, { label: string; icon: React.ElementType; col
 };
 
 const SuperAdminPage: React.FC = () => {
-  const [users, setUsers] = useState<UserAccount[]>(initialUsers);
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<UserRole | 'all'>('all');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
+
+  // Fetch Users
+  React.useEffect(() => {
+    if (!db) return;
+
+    const q = query(collection(db, 'users'), orderBy('name', 'asc')); // Assuming 'users' collection exists from Auth
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Ensure defaults if missing
+        role: doc.data().role || 'student',
+        status: doc.data().status || 'active',
+        joinedAt: doc.data().createdAt ? new Date(doc.data().createdAt.seconds * 1000).toISOString().split('T')[0] : 'Unknown'
+      })) as UserAccount[];
+      setUsers(items);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,30 +90,32 @@ const SuperAdminPage: React.FC = () => {
     setShowRoleModal(true);
   };
 
-  const handleAssignRole = (newRole: UserRole) => {
-    if (!selectedUser) return;
+  const handleAssignRole = async (newRole: UserRole) => {
+    if (!selectedUser || !db) return;
 
-    setUsers(prev =>
-      prev.map(user =>
-        user.id === selectedUser.id ? { ...user, role: newRole } : user
-      )
-    );
-    toast.success(`${selectedUser.name} is now a ${roleConfig[newRole].label}`);
-    setShowRoleModal(false);
-    setSelectedUser(null);
+    try {
+      await updateDoc(doc(db, 'users', selectedUser.id), { role: newRole });
+      toast.success(`${selectedUser.name} is now a ${roleConfig[newRole].label}`);
+      setShowRoleModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
   };
 
-  const handleToggleStatus = (userId: string) => {
-    setUsers(prev =>
-      prev.map(user =>
-        user.id === userId
-          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
-          : user
-      )
-    );
+  const handleToggleStatus = async (userId: string) => {
+    if (!db) return;
     const user = users.find(u => u.id === userId);
-    if (user) {
-      toast.success(`${user.name} is now ${user.status === 'active' ? 'inactive' : 'active'}`);
+    if (!user) return;
+
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    try {
+      await updateDoc(doc(db, 'users', userId), { status: newStatus });
+      toast.success(`${user.name} is now ${newStatus}`);
+    } catch (error) {
+      console.error("Error status update:", error);
+      toast.error("Failed to update status");
     }
   };
 

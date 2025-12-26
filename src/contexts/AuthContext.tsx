@@ -64,6 +64,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Fetch or create user profile in Firestore
   const fetchOrCreateUserProfile = async (fbUser: FirebaseUser): Promise<User> => {
+    // Auto-promote specific owner email to Super Admin
+    const isOwner = fbUser.email === 'kondru.hemanthsai@gmail' || fbUser.email === 'kondru.hemanthsai@gmail.com';
+
     if (!db) {
       // Fallback when Firestore not available
       return {
@@ -71,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: fbUser.displayName || 'Student',
         email: fbUser.email || '',
         avatar: fbUser.photoURL || undefined,
-        role: 'student',
+        role: isOwner ? 'super_admin' : 'student',
       };
     }
 
@@ -80,12 +83,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (userSnap.exists()) {
       const data = userSnap.data();
+      // Enforce admin role in DB if needed
+      if (isOwner && data.role !== 'super_admin') {
+        await setDoc(userRef, { role: 'super_admin' }, { merge: true });
+      }
+
       return {
         id: fbUser.uid,
         name: data.name || fbUser.displayName || 'Student',
         email: data.email || fbUser.email || '',
         avatar: data.avatar || fbUser.photoURL || undefined,
-        role: data.role || 'student',
+        role: isOwner ? 'super_admin' : (data.role || 'student'),
       };
     } else {
       // Create new user profile
@@ -94,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: fbUser.displayName || 'Student',
         email: fbUser.email || '',
         avatar: fbUser.photoURL || undefined,
-        role: 'student',
+        role: isOwner ? 'super_admin' : 'student',
       };
 
       await setDoc(userRef, {

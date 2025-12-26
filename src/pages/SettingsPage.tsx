@@ -1,9 +1,12 @@
 import React from 'react';
-import { ArrowLeft, Bell, BellOff, Moon, Shield, Smartphone } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Moon, Shield, Smartphone, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const SettingsPage: React.FC = () => {
+  const { logout } = useAuth();
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -95,6 +98,21 @@ const SettingsPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Account Actions */}
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Account</h3>
+          <div className="space-y-3">
+            <Button
+              variant="destructive"
+              className="w-full justify-start gap-2 h-12 text-base font-medium bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
+              onClick={() => logout()}
+            >
+              <LogOut className="w-5 h-5" />
+              Sign Out
+            </Button>
           </div>
         </section>
       </div>

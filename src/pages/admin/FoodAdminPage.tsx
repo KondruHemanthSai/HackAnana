@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Plus, Pencil, Trash2, X, Check, 
-  UtensilsCrossed, Search, Filter, ToggleLeft, ToggleRight 
+import {
+  ArrowLeft, Plus, Pencil, Trash2, X, Check,
+  UtensilsCrossed, Search, Filter, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,7 +31,7 @@ const initialMenuItems: MenuItem[] = [
 const categories = ['South Indian', 'North Indian', 'Chinese', 'Snacks', 'Beverages', 'Rice', 'Healthy'];
 
 const FoodAdminPage: React.FC = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -40,6 +42,26 @@ const FoodAdminPage: React.FC = () => {
     category: 'Snacks',
     available: true,
   });
+
+  // Fetch items from Firestore
+  React.useEffect(() => {
+    if (!db) return;
+
+    // Subscribe to real-time updates
+    const q = query(collection(db, 'food_items'), orderBy('category'), orderBy('name'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as MenuItem[];
+      setMenuItems(items);
+    }, (error) => {
+      console.error("Error fetching menu items:", error);
+      toast.error("Failed to load menu items");
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,42 +96,60 @@ const FoodAdminPage: React.FC = () => {
     setEditingItem(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.description || formData.price <= 0) {
       toast.error('Please fill all fields correctly');
       return;
     }
 
-    if (editingItem) {
-      setMenuItems(prev =>
-        prev.map(item =>
-          item.id === editingItem.id ? { ...item, ...formData } : item
-        )
-      );
-      toast.success('Menu item updated!');
-    } else {
-      const newItem: MenuItem = {
-        id: Date.now().toString(),
-        ...formData,
-      };
-      setMenuItems(prev => [...prev, newItem]);
-      toast.success('Menu item added!');
+    if (!db) {
+      toast.error("Database connection failed");
+      return;
     }
 
-    handleCloseForm();
+    try {
+      if (editingItem) {
+        const itemRef = doc(db, 'food_items', editingItem.id);
+        await updateDoc(itemRef, { ...formData });
+        toast.success('Menu item updated!');
+      } else {
+        await addDoc(collection(db, 'food_items'), {
+          ...formData,
+          createdAt: new Date().toISOString()
+        });
+        toast.success('Menu item added!');
+      }
+      handleCloseForm();
+    } catch (error) {
+      console.error("Error saving item:", error);
+      toast.error("Failed to save item");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setMenuItems(prev => prev.filter(item => item.id !== id));
-    toast.success('Menu item deleted');
+  const handleDelete = async (id: string) => {
+    if (!db) return;
+    if (confirm('Are you sure you want to delete this item?')) {
+      try {
+        await deleteDoc(doc(db, 'food_items', id));
+        toast.success('Menu item deleted');
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        toast.error("Failed to delete item");
+      }
+    }
   };
 
-  const handleToggleAvailability = (id: string) => {
-    setMenuItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, available: !item.available } : item
-      )
-    );
+  const handleToggleAvailability = async (id: string) => {
+    if (!db) return;
+    const item = menuItems.find(i => i.id === id);
+    if (item) {
+      try {
+        await updateDoc(doc(db, 'food_items', id), { available: !item.available });
+      } catch (error) {
+        console.error("Error updating availability:", error);
+        toast.error("Failed to update status");
+      }
+    }
   };
 
   return (
@@ -182,9 +222,8 @@ const FoodAdminPage: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground truncate">{item.name}</h3>
-                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                    item.available ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
-                  }`}>
+                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${item.available ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+                    }`}>
                     {item.available ? 'Available' : 'Sold Out'}
                   </span>
                 </div>
@@ -312,13 +351,11 @@ const FoodAdminPage: React.FC = () => {
                   <span className="text-sm font-medium text-foreground">Available for Order</span>
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, available: !prev.available }))}
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      formData.available ? 'bg-success' : 'bg-muted-foreground/30'
-                    }`}
+                    className={`w-12 h-6 rounded-full transition-colors ${formData.available ? 'bg-success' : 'bg-muted-foreground/30'
+                      }`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-foreground transition-transform ${
-                      formData.available ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
+                    <div className={`w-5 h-5 rounded-full bg-foreground transition-transform ${formData.available ? 'translate-x-6' : 'translate-x-0.5'
+                      }`} />
                   </button>
                 </div>
               </div>

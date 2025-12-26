@@ -26,6 +26,7 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import FoodAdminPage from "@/pages/admin/FoodAdminPage";
 import ResourceAdminPage from "@/pages/admin/ResourceAdminPage";
 import SuperAdminPage from "@/pages/admin/SuperAdminPage";
+import RoleConfigPage from "@/pages/admin/RoleConfigPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -252,6 +253,14 @@ const AppRoutes: React.FC = () => {
               <SuperAdminPage />
             </AppLayout>
           </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin-setup"
+        element={
+          <ProtectedRoute>
+            <RoleConfigPage />
+          </ProtectedRoute>
         }
       />
 

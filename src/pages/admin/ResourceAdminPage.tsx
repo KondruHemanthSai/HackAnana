@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Plus, Pencil, Trash2, X, Check, 
-  Building2, Dumbbell, Search, Users, Clock 
+import {
+  ArrowLeft, Plus, Pencil, Trash2, X, Check,
+  Building2, Dumbbell, Search, Users, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -33,7 +35,7 @@ const initialResources: Resource[] = [
 ];
 
 const ResourceAdminPage: React.FC = () => {
-  const [resources, setResources] = useState<Resource[]>(initialResources);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<ResourceType | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
@@ -47,6 +49,25 @@ const ResourceAdminPage: React.FC = () => {
     availableUntil: '',
     description: '',
   });
+
+  // Fetch resources
+  React.useEffect(() => {
+    if (!db) return;
+
+    const q = query(collection(db, 'resources'), orderBy('type'), orderBy('name'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Resource[];
+      setResources(items);
+    }, (error) => {
+      console.error("Error fetching resources:", error);
+      toast.error("Failed to load resources");
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,42 +108,60 @@ const ResourceAdminPage: React.FC = () => {
     setEditingResource(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.location) {
       toast.error('Please fill all required fields');
       return;
     }
 
-    if (editingResource) {
-      setResources(prev =>
-        prev.map(resource =>
-          resource.id === editingResource.id ? { ...resource, ...formData } : resource
-        )
-      );
-      toast.success('Resource updated!');
-    } else {
-      const newResource: Resource = {
-        id: Date.now().toString(),
-        ...formData,
-      };
-      setResources(prev => [...prev, newResource]);
-      toast.success('Resource added!');
+    if (!db) {
+      toast.error("Database connection failed");
+      return;
     }
 
-    handleCloseForm();
+    try {
+      if (editingResource) {
+        const docRef = doc(db, 'resources', editingResource.id);
+        await updateDoc(docRef, { ...formData });
+        toast.success('Resource updated!');
+      } else {
+        await addDoc(collection(db, 'resources'), {
+          ...formData,
+          createdAt: new Date().toISOString()
+        });
+        toast.success('Resource added!');
+      }
+      handleCloseForm();
+    } catch (error) {
+      console.error("Error saving resource:", error);
+      toast.error("Failed to save resource");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setResources(prev => prev.filter(resource => resource.id !== id));
-    toast.success('Resource deleted');
+  const handleDelete = async (id: string) => {
+    if (!db) return;
+    if (confirm('Are you sure you want to delete this resource?')) {
+      try {
+        await deleteDoc(doc(db, 'resources', id));
+        toast.success('Resource deleted');
+      } catch (error) {
+        console.error("Error deleting resource:", error);
+        toast.error("Failed to delete resource");
+      }
+    }
   };
 
-  const handleToggleAvailability = (id: string) => {
-    setResources(prev =>
-      prev.map(resource =>
-        resource.id === id ? { ...resource, available: !resource.available } : resource
-      )
-    );
+  const handleToggleAvailability = async (id: string) => {
+    if (!db) return;
+    const res = resources.find(r => r.id === id);
+    if (res) {
+      try {
+        await updateDoc(doc(db, 'resources', id), { available: !res.available });
+      } catch (error) {
+        console.error("Error updating avail:", error);
+        toast.error("Update failed");
+      }
+    }
   };
 
   const roomCount = resources.filter(r => r.type === 'room').length;
@@ -172,11 +211,10 @@ const ResourceAdminPage: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setFilterType(tab.key as ResourceType | 'all')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                filterType === tab.key
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-card text-muted-foreground'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${filterType === tab.key
+                ? 'bg-secondary text-secondary-foreground'
+                : 'bg-card text-muted-foreground'
+                }`}
             >
               {tab.icon && <tab.icon className="w-4 h-4" />}
               {tab.label}
@@ -224,9 +262,8 @@ const ResourceAdminPage: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground truncate">{resource.name}</h3>
-                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                    resource.available ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
-                  }`}>
+                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${resource.available ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+                    }`}>
                     {resource.available ? 'Available' : 'In Use'}
                   </span>
                 </div>
@@ -252,11 +289,10 @@ const ResourceAdminPage: React.FC = () => {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleToggleAvailability(resource.id)}
-                  className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
-                    resource.available 
-                      ? 'bg-destructive/10 text-destructive hover:bg-destructive/20' 
-                      : 'bg-success/10 text-success hover:bg-success/20'
-                  }`}
+                  className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${resource.available
+                    ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                    : 'bg-success/10 text-success hover:bg-success/20'
+                    }`}
                 >
                   {resource.available ? 'Set In Use' : 'Set Free'}
                 </button>
@@ -321,22 +357,20 @@ const ResourceAdminPage: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, type: 'room' }))}
-                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${
-                        formData.type === 'room'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${formData.type === 'room'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                        }`}
                     >
                       <Building2 className="w-4 h-4" />
                       Room
                     </button>
                     <button
                       onClick={() => setFormData(prev => ({ ...prev, type: 'equipment' }))}
-                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${
-                        formData.type === 'equipment'
-                          ? 'bg-secondary text-secondary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl transition-all ${formData.type === 'equipment'
+                        ? 'bg-secondary text-secondary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                        }`}
                     >
                       <Dumbbell className="w-4 h-4" />
                       Equipment
@@ -408,13 +442,11 @@ const ResourceAdminPage: React.FC = () => {
                   <span className="text-sm font-medium text-foreground">Currently Available</span>
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, available: !prev.available }))}
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      formData.available ? 'bg-success' : 'bg-muted-foreground/30'
-                    }`}
+                    className={`w-12 h-6 rounded-full transition-colors ${formData.available ? 'bg-success' : 'bg-muted-foreground/30'
+                      }`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-foreground transition-transform ${
-                      formData.available ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
+                    <div className={`w-5 h-5 rounded-full bg-foreground transition-transform ${formData.available ? 'translate-x-6' : 'translate-x-0.5'
+                      }`} />
                   </button>
                 </div>
               </div>
