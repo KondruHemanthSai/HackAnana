@@ -1,9 +1,57 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 
 const HomePage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [sosClicks, setSosClicks] = useState(0);
+  const [isSosActive, setIsSosActive] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // SOS Triple Click Logic
+  const handleSosClick = () => {
+    if (isSosActive) return;
+
+    setSosClicks(prev => {
+      const newCount = prev + 1;
+
+      // Clear existing timeout
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+
+      // Reset count if no 3rd click within 1 second
+      clickTimeoutRef.current = setTimeout(() => {
+        setSosClicks(0);
+      }, 1000);
+
+      // Trigger SOS
+      if (newCount >= 3) {
+        if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+        setIsSosActive(true);
+        setSosClicks(0); // Reset for next time
+        return 0;
+      }
+      return newCount;
+    });
+  };
+
+  // Countdown Logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSosActive && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (isSosActive && countdown === 0) {
+      // Trigger Action (e.g., sim call)
+      console.log("SOS CALL INITIATED");
+      // Optional: window.location.href = "tel:112";
+    }
+    return () => clearInterval(interval);
+  }, [isSosActive, countdown]);
 
   // Redirect to login if not authenticated
   if (!isAuthenticated && !user) {
@@ -15,6 +63,25 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col animate-in fade-in duration-500">
+      {/* Red Screen Overlay */}
+      {isSosActive && (
+        <div className="fixed inset-0 z-[100] bg-red-600 flex flex-col items-center justify-center text-white animate-in fade-in duration-200">
+          <div className="text-9xl font-black mb-4 animate-pulse">{countdown}</div>
+          <h2 className="text-4xl font-bold mb-8 uppercase tracking-widest">SOS Triggered</h2>
+          <p className="text-xl opacity-90 mb-12">Calling emergency contacts...</p>
+          <button
+            onClick={() => {
+              setIsSosActive(false);
+              setSosClicks(0);
+              setCountdown(5);
+            }}
+            className="bg-white text-red-600 px-8 py-3 rounded-full font-bold text-lg active:scale-95 transition-transform"
+          >
+            CANCEL
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 pt-14 pb-4">
         <div className="flex flex-col">
@@ -35,10 +102,13 @@ const HomePage = () => {
           <div className="absolute inset-4 rounded-full border-4 border-dashed border-primary/20 animate-[spin_15s_linear_infinite_reverse]"></div>
 
           {/* Main SOS Button */}
-          <button className="relative w-36 h-36 rounded-full bg-gradient-to-br from-white to-[#ebf4f5] shadow-[0_10px_40px_rgba(54,116,181,0.25)] flex flex-col items-center justify-center z-10 active:scale-95 transition-all duration-300 border-4 border-white/60 group overflow-hidden">
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <span className="material-symbols-outlined text-primary text-[48px] mb-1 material-symbols-filled drop-shadow-sm">emergency_share</span>
-            <span className="text-primary font-black text-xl tracking-wider">SOS</span>
+          <button
+            onClick={handleSosClick}
+            className="relative w-36 h-36 rounded-full bg-gradient-to-br from-white to-[#ebf4f5] shadow-[0_10px_40px_rgba(54,116,181,0.25)] flex flex-col items-center justify-center z-10 active:scale-95 transition-all duration-300 border-4 border-white/60 group overflow-hidden"
+          >
+            <div className={`absolute inset-0 transition-opacity duration-200 ${sosClicks > 0 ? 'bg-red-500/10 opacity-100' : 'bg-primary/5 opacity-0 group-hover:opacity-100'}`}></div>
+            <span className={`material-symbols-outlined text-[48px] mb-1 material-symbols-filled drop-shadow-sm transition-colors ${sosClicks > 0 ? 'text-red-500' : 'text-primary'}`}>emergency_share</span>
+            <span className={`font-black text-xl tracking-wider transition-colors ${sosClicks > 0 ? 'text-red-500' : 'text-primary'}`}>SOS</span>
           </button>
 
           {/* Pulsing Effect behind button */}
@@ -46,7 +116,7 @@ const HomePage = () => {
         </div>
         <div className="text-center space-y-1">
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Emergency?</h2>
-          <p className="text-muted-foreground text-base font-medium">Press and hold for help</p>
+          <p className="text-muted-foreground text-base font-medium">Press 3 times for help ({sosClicks}/3)</p>
         </div>
       </section>
 
@@ -54,8 +124,6 @@ const HomePage = () => {
       <div className="w-full overflow-x-auto no-scrollbar pl-6 py-4 flex gap-3 snap-x">
         {[
           { icon: 'badge', label: 'My ID', action: () => { } },
-          { icon: 'map', label: 'Map', action: () => { } },
-          { icon: 'school', label: 'Grades', action: () => { } },
           { icon: 'directions_bus', label: 'Bus Pass', action: () => { } },
         ].map((item, idx) => (
           <button
@@ -69,53 +137,27 @@ const HomePage = () => {
         ))}
       </div>
 
-      {/* Dashboard Grid */}
-      <div className="grid grid-cols-2 gap-4 px-6 mt-2 pb-24">
-        {/* Transport Card */}
-        <div onClick={() => navigate('/transport')} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between h-44 active:scale-[0.98] transition-transform relative overflow-hidden group border-none cursor-pointer">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-colors"></div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-primary shadow-sm backdrop-blur-sm">
-            <span className="material-symbols-outlined text-[28px]">directions_bus</span>
+      {/* Recent Updates (Placeholder for "Something Else") */}
+      <div className="px-6 mt-4 pb-24">
+        <h3 className="text-lg font-bold text-foreground mb-4">Recent Updates</h3>
+        <div className="space-y-3">
+          <div className="glass-card p-4 rounded-2xl flex gap-4 items-center">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+              <span className="material-symbols-outlined text-[20px]">info</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm">Exam Schedule Released</h4>
+              <p className="text-xs text-muted-foreground">Check your dashboard for details</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-lg text-foreground">Transport</h3>
-            <p className="text-sm font-medium text-muted-foreground mt-1">Shuttle arriving <span className="text-primary font-bold">4 min</span></p>
-          </div>
-        </div>
-
-        {/* Canteen Card */}
-        <div onClick={() => navigate('/canteen')} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between h-44 active:scale-[0.98] transition-transform relative overflow-hidden group border-none cursor-pointer">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-400/10 rounded-full blur-xl group-hover:bg-orange-400/20 transition-colors"></div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-orange-500 shadow-sm backdrop-blur-sm">
-            <span className="material-symbols-outlined text-[28px]">restaurant</span>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-foreground">Canteen</h3>
-            <p className="text-sm font-medium text-muted-foreground mt-1">Menu: <span className="text-orange-600 font-bold">Tacos</span></p>
-          </div>
-        </div>
-
-        {/* Resources Card */}
-        <div onClick={() => navigate('/resources')} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between h-44 active:scale-[0.98] transition-transform relative overflow-hidden group border-none cursor-pointer">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-teal-400/10 rounded-full blur-xl group-hover:bg-teal-400/20 transition-colors"></div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-teal-600 shadow-sm backdrop-blur-sm">
-            <span className="material-symbols-outlined text-[28px]">local_library</span>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-foreground">Resources</h3>
-            <p className="text-sm font-medium text-muted-foreground mt-1">Library: <span className="text-teal-700 font-bold">Open</span></p>
-          </div>
-        </div>
-
-        {/* Events Card */}
-        <div onClick={() => navigate('/events')} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between h-44 active:scale-[0.98] transition-transform relative overflow-hidden group border-none cursor-pointer">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-400/10 rounded-full blur-xl group-hover:bg-rose-400/20 transition-colors"></div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-rose-500 shadow-sm backdrop-blur-sm">
-            <span className="material-symbols-outlined text-[28px]">confirmation_number</span>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-foreground">Events</h3>
-            <p className="text-sm font-medium text-muted-foreground mt-1">Music Fest: <span className="text-rose-600 font-bold">5pm</span></p>
+          <div className="glass-card p-4 rounded-2xl flex gap-4 items-center">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+              <span className="material-symbols-outlined text-[20px]">event</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm">Tech Fest Registration</h4>
+              <p className="text-xs text-muted-foreground">Open until Friday</p>
+            </div>
           </div>
         </div>
       </div>

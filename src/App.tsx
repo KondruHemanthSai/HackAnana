@@ -93,7 +93,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="relative z-10 min-h-screen pb-28">
         <NotificationBanner />
         {children}
-        <SOSButton />
         <BottomNav />
         <InstallPrompt />
       </div>

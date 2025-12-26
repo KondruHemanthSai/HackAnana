@@ -10,8 +10,9 @@ const BottomNav = () => {
 
   const navItems = [
     { path: "/", icon: "home", label: "Home" },
-    { path: "/events", icon: "calendar_month", label: "Events" },
-    { path: "/grievance", icon: "chat_bubble", label: "Chat" },
+    { path: "/canteen", icon: "restaurant", label: "Canteen" },
+    { path: "/transport", icon: "directions_bus", label: "Transport" },
+    { path: "/resources", icon: "local_library", label: "Resources" },
     { path: "/settings", icon: "person", label: "Profile" },
   ];
 
@@ -29,8 +30,8 @@ const BottomNav = () => {
             >
               <div
                 className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${active
-                    ? "bg-primary/10"
-                    : "group-hover:bg-secondary/10"
+                  ? "bg-primary/10"
+                  : "group-hover:bg-secondary/10"
                   }`}
               >
                 <span className={`material-symbols-outlined text-[24px] ${active ? 'material-symbols-filled' : ''}`}>
