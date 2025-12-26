@@ -36,8 +36,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-8 h-8 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
+        <p className="text-foreground">Loading Application...</p>
       </div>
     );
   }
@@ -50,8 +51,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 // Admin Route wrapper - checks for specific roles
-const AdminRoute: React.FC<{ 
-  children: React.ReactNode; 
+const AdminRoute: React.FC<{
+  children: React.ReactNode;
   allowedRoles: string[];
 }> = ({ children, allowedRoles }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -94,9 +95,9 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} 
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
 
       {/* Protected Routes with Layout */}

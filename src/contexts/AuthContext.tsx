@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
+import {
   User as FirebaseUser,
   signInWithPopup,
   signOut,
@@ -50,6 +50,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const isConfigured = isFirebaseConfigured();
 
+  useEffect(() => {
+    console.log('[AuthContext] Initializing...', { isConfigured });
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.error('[AuthContext] Loading timed out, forcing completion');
+        setIsLoading(false);
+      }
+    }, 5000); // 5s safety timeout check
+
+    return () => clearTimeout(timer);
+  });
+
   // Fetch or create user profile in Firestore
   const fetchOrCreateUserProfile = async (fbUser: FirebaseUser): Promise<User> => {
     if (!db) {
@@ -97,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (!auth) {
+      console.log('[AuthContext] No auth client, using local mock/fallback');
       // Firebase not configured - use mock auth
       const savedUser = localStorage.getItem('campusos_user');
       if (savedUser) {
@@ -106,10 +119,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
+    console.log('[AuthContext] Setting up Firebase auth listener');
+
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
-      
+
       if (fbUser) {
         try {
           const userProfile = await fetchOrCreateUserProfile(fbUser);
@@ -130,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null);
         localStorage.removeItem('campusos_user');
       }
-      
+
       setIsLoading(false);
     });
 
@@ -142,7 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Mock login when Firebase not configured
       setIsLoading(true);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockUser: User = {
         id: '1',
         name: 'Demo Student',
@@ -150,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
         role: 'student'
       };
-      
+
       setUser(mockUser);
       localStorage.setItem('campusos_user', JSON.stringify(mockUser));
       setIsLoading(false);
@@ -164,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Signed in successfully!');
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       if (error.code === 'auth/popup-closed-by-user') {
         toast.error('Sign-in cancelled');
       } else if (error.code === 'auth/popup-blocked') {
