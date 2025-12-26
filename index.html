@@ -30,21 +30,23 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Register Service Worker
-      // Service Worker disabled for debugging
-      /*
+      // FORCE UNREGISTER ALL SERVICE WORKERS to clear stale cache
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered:', registration);
-            })
-            .catch((error) => {
-              console.log('SW registration failed:', error);
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          if (registrations.length > 0) {
+            console.log('Found ' + registrations.length + ' stale Service Worker(s). Unregistering...');
+            const unregisterPromises = registrations.map(r => r.unregister());
+            Promise.all(unregisterPromises).then((results) => {
+              console.log('All SWs unregistered. Reloading...');
+              // Reload once to clear the cache
+              if (!sessionStorage.getItem('sw_cleared')) {
+                sessionStorage.setItem('sw_cleared', 'true');
+                window.location.reload();
+              }
             });
+          }
         });
       }
-      */
     </script>
   </body>
 </html>

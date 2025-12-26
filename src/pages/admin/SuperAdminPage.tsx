@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Users, ShieldCheck, Search, UserCog, 
+import {
+  ArrowLeft, Users, ShieldCheck, Search, UserCog,
   X, Check, Crown, UtensilsCrossed, Building2, GraduationCap,
   MoreVertical, Mail
 } from 'lucide-react';
@@ -67,7 +67,7 @@ const SuperAdminPage: React.FC = () => {
 
   const handleAssignRole = (newRole: UserRole) => {
     if (!selectedUser) return;
-    
+
     setUsers(prev =>
       prev.map(user =>
         user.id === selectedUser.id ? { ...user, role: newRole } : user
@@ -81,8 +81,8 @@ const SuperAdminPage: React.FC = () => {
   const handleToggleStatus = (userId: string) => {
     setUsers(prev =>
       prev.map(user =>
-        user.id === userId 
-          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' } 
+        user.id === userId
+          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
           : user
       )
     );
@@ -93,9 +93,9 @@ const SuperAdminPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="flex flex-col h-full fade-in pb-24">
       {/* Header */}
-      <header className="px-4 pt-4 pb-4 safe-area-top border-b border-border">
+      <header className="sticky top-0 z-30 px-4 pt-4 pb-4 glass-panel-heavy border-b-0 rounded-b-3xl shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/" className="p-2 -ml-2 rounded-xl hover:bg-card transition-colors">
@@ -115,7 +115,8 @@ const SuperAdminPage: React.FC = () => {
       {/* Stats Grid */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass-card p-4">
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-primary/20 rounded-full blur-xl"></div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-primary/20">
                 <Users className="w-5 h-5 text-primary" />
@@ -126,36 +127,42 @@ const SuperAdminPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="glass-card p-4">
+
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-blue-400/20 rounded-full blur-xl"></div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-blue-400/20">
                 <GraduationCap className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.students}</p>
-                <p className="text-xs text-muted-foreground">Students</p>
+                <p className="text-2xl font-bold text-[#101419]">{stats.students}</p>
+                <p className="text-xs text-text-muted">Students</p>
               </div>
             </div>
           </div>
-          <div className="glass-card p-4">
+
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-success/20 rounded-full blur-xl"></div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-success/20">
                 <UtensilsCrossed className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.foodAdmins}</p>
-                <p className="text-xs text-muted-foreground">Food Admins</p>
+                <p className="text-2xl font-bold text-[#101419]">{stats.foodAdmins}</p>
+                <p className="text-xs text-text-muted">Food Admins</p>
               </div>
             </div>
           </div>
-          <div className="glass-card p-4">
+
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-purple-400/20 rounded-full blur-xl"></div>
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-purple-400/20">
                 <Building2 className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.resourceAdmins}</p>
-                <p className="text-xs text-muted-foreground">Resource Admins</p>
+                <p className="text-2xl font-bold text-[#101419]">{stats.resourceAdmins}</p>
+                <p className="text-xs text-text-muted">Resource Admins</p>
               </div>
             </div>
           </div>
@@ -171,20 +178,19 @@ const SuperAdminPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search users by name or email..."
-            className="w-full bg-card rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 ring-secondary/50"
+            className="w-full glass-input rounded-xl pl-10 pr-4 py-3 text-sm text-[#101419] placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        
+
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {(['all', 'student', 'food_admin', 'resource_admin', 'super_admin'] as const).map((role) => (
             <button
               key={role}
               onClick={() => setFilterRole(role)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                filterRole === role
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-card text-muted-foreground hover:bg-muted'
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterRole === role
+                ? 'glass-chip-active shadow-md'
+                : 'glass-chip text-text-muted hover:bg-white/60'
+                }`}
             >
               {role === 'all' ? 'All Users' : roleConfig[role].label}
             </button>
@@ -197,14 +203,14 @@ const SuperAdminPage: React.FC = () => {
         {filteredUsers.map((user, index) => {
           const config = roleConfig[user.role];
           const RoleIcon = config.icon;
-          
+
           return (
             <motion.div
               key={user.id}
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: index * 0.03 }}
-              className={`module-card ${user.status === 'inactive' ? 'opacity-60' : ''}`}
+              className={`glass-panel p-3 rounded-2xl ${user.status === 'inactive' ? 'opacity-60 grayscale' : ''}`}
             >
               <div className="flex items-center gap-3">
                 {/* Avatar */}
@@ -284,7 +290,7 @@ const SuperAdminPage: React.FC = () => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 max-h-[70vh] overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 glass-panel-heavy rounded-t-3xl z-50 max-h-[70vh] overflow-hidden border-t border-white/50"
             >
               <div className="p-4 border-b border-border">
                 <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
@@ -303,16 +309,15 @@ const SuperAdminPage: React.FC = () => {
                 {(Object.entries(roleConfig) as [UserRole, typeof roleConfig[UserRole]][]).map(([role, config]) => {
                   const RoleIcon = config.icon;
                   const isSelected = selectedUser.role === role;
-                  
+
                   return (
                     <button
                       key={role}
                       onClick={() => handleAssignRole(role)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                        isSelected 
-                          ? 'bg-secondary/20 ring-2 ring-secondary' 
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${isSelected
+                        ? 'bg-secondary/20 ring-2 ring-secondary'
+                        : 'bg-muted hover:bg-muted/80'
+                        }`}
                     >
                       <div className={`p-3 rounded-xl ${config.bgColor}`}>
                         <RoleIcon className={`w-5 h-5 ${config.color}`} />

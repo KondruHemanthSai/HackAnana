@@ -1,285 +1,179 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, Plus, Minus, ShoppingCart, CreditCard, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  available: boolean;
-  image?: string;
-}
+const CanteenPage = () => {
+  const [activeTab, setActiveTab] = useState('All');
 
-interface CartItem extends MenuItem {
-  quantity: number;
-}
+  const categories = [
+    { id: 'All', icon: 'restaurant', label: 'All' },
+    { id: 'Veg', icon: '🥗', label: 'Veg' },
+    { id: 'Non-Veg', icon: '🍗', label: 'Non-Veg' },
+    { id: 'Drinks', icon: '🥤', label: 'Drinks' },
+  ];
 
-const menuItems: MenuItem[] = [
-  { id: '1', name: 'Masala Dosa', description: 'Crispy dosa with potato filling', price: 50, category: 'South Indian', available: true },
-  { id: '2', name: 'Paneer Butter Masala', description: 'Creamy paneer curry', price: 120, category: 'North Indian', available: true },
-  { id: '3', name: 'Veg Biryani', description: 'Fragrant rice with vegetables', price: 100, category: 'Rice', available: true },
-  { id: '4', name: 'Cold Coffee', description: 'Chilled coffee with ice cream', price: 60, category: 'Beverages', available: true },
-  { id: '5', name: 'Samosa (2 pcs)', description: 'Crispy fried pastry', price: 30, category: 'Snacks', available: true },
-  { id: '6', name: 'Chicken Fried Rice', description: 'Stir-fried rice with chicken', price: 130, category: 'Chinese', available: false },
-  { id: '7', name: 'Fruit Salad', description: 'Fresh seasonal fruits', price: 70, category: 'Healthy', available: true },
-  { id: '8', name: 'Chai', description: 'Indian masala tea', price: 15, category: 'Beverages', available: true },
-];
+  const foodItems = [
+    {
+      id: 1,
+      name: 'Cheese Burger',
+      price: 4.50,
+      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=200&auto=format&fit=crop',
+      category: 'Non-Veg'
+    },
+    {
+      id: 2,
+      name: 'Iced Matcha',
+      price: 3.00,
+      image: 'https://images.unsplash.com/photo-1515823662972-da6a2e1d3102?q=80&w=200&auto=format&fit=crop',
+      category: 'Drinks'
+    },
+    {
+      id: 3,
+      name: 'Spicy Tacos',
+      price: 5.00,
+      image: 'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?q=80&w=200&auto=format&fit=crop',
+      category: 'Non-Veg'
+    },
+    {
+      id: 4,
+      name: 'Fruit Bowl',
+      price: 2.50,
+      image: 'https://images.unsplash.com/photo-1511690656952-34342d5c2899?q=80&w=200&auto=format&fit=crop',
+      category: 'Veg'
+    },
+    {
+      id: 5,
+      name: 'Dumplings',
+      price: 6.50,
+      image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c417c?q=80&w=200&auto=format&fit=crop',
+      category: 'Veg'
+    },
+    {
+      id: 6,
+      name: 'Choco Donut',
+      price: 2.00,
+      image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?q=80&w=200&auto=format&fit=crop',
+      category: 'Veg'
+    },
+  ];
 
-const categories = ['All', 'South Indian', 'North Indian', 'Chinese', 'Snacks', 'Beverages', 'Healthy'];
-
-const CanteenPage: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [showCart, setShowCart] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-
-  const filteredItems = menuItems.filter(
-    item => selectedCategory === 'All' || item.category === selectedCategory
-  );
-
-  const addToCart = (item: MenuItem) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
-      if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { ...item, quantity: 1 }];
-    });
-    toast.success(`Added ${item.name} to cart`);
-  };
-
-  const updateQuantity = (id: string, delta: number) => {
-    setCart(prev => {
-      const updated = prev.map(item => {
-        if (item.id === id) {
-          const newQty = item.quantity + delta;
-          return newQty > 0 ? { ...item, quantity: newQty } : item;
-        }
-        return item;
-      }).filter(item => item.quantity > 0);
-      return updated;
-    });
-  };
-
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item.id !== id));
-  };
-
-  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handlePlaceOrder = () => {
-    setOrderPlaced(true);
-    setTimeout(() => {
-      setOrderPlaced(false);
-      setShowCart(false);
-      setCart([]);
-      toast.success('Order placed successfully!', {
-        description: 'Your order will be ready in 15-20 minutes',
-      });
-    }, 2000);
-  };
+  const filteredItems = activeTab === 'All'
+    ? foodItems
+    : foodItems.filter(item => item.category === activeTab);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="px-4 pt-4 pb-4 safe-area-top">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="p-2 -ml-2 rounded-xl hover:bg-card transition-colors">
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Canteen</h1>
-              <p className="text-sm text-muted-foreground">Order food & beverages</p>
-            </div>
+    <div className="flex flex-col h-full fade-in pb-32">
+      {/* Top App Bar */}
+      <header className="z-20 px-5 pt-12 pb-4 glass-nav rounded-b-3xl sticky top-0 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-200" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
           </div>
-          <button
-            onClick={() => setShowCart(true)}
-            className="relative p-2.5 rounded-xl bg-card hover:bg-card/80 transition-colors"
-          >
-            <ShoppingCart className="w-5 h-5 text-foreground" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-secondary text-secondary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </button>
+          <div>
+            <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Good Morning,</p>
+            <h1 className="text-lg font-bold text-primary leading-tight">Alex Hunter 👋</h1>
+          </div>
         </div>
+        <button className="relative p-2 rounded-xl bg-white/40 hover:bg-white/60 transition-colors text-primary">
+          <span className="material-symbols-outlined">notifications</span>
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-400 border border-white"></span>
+        </button>
       </header>
 
-      {/* Categories */}
-      <div className="px-4 mb-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-          {categories.map((category) => (
+      {/* Main Content */}
+      <main className="flex-1 px-1 pt-2">
+        {/* Search Bar */}
+        <div className="px-4 mt-4 mb-2">
+          <div className="glass-card rounded-2xl flex items-center h-12 px-4 gap-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <span className="material-symbols-outlined text-secondary">search</span>
+            <input
+              className="bg-transparent border-none focus:ring-0 text-primary placeholder-primary/50 text-base w-full p-0 font-medium"
+              placeholder="Search for dumplings, soda..."
+              type="text"
+            />
+          </div>
+        </div>
+
+        {/* Categories Chips */}
+        <div className="flex gap-3 px-4 py-4 overflow-x-auto no-scrollbar snap-x">
+          {categories.map((cat) => (
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                selectedCategory === category
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-card text-muted-foreground'
-              }`}
+              key={cat.id}
+              onClick={() => setActiveTab(cat.id)}
+              className={`snap-start shrink-0 h-9 px-5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === cat.id
+                  ? 'bg-primary text-white shadow-lg shadow-primary/30 font-bold'
+                  : 'glass-card text-primary hover:bg-white/70'
+                }`}
             >
-              {category}
+              {cat.id === 'All' ? (
+                <span className="material-symbols-outlined text-[18px]">{cat.icon}</span>
+              ) : (
+                <span>{cat.icon}</span>
+              )}
+              {cat.label}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Menu Items */}
-      <div className="px-4 space-y-3">
-        {filteredItems.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className={`module-card ${!item.available ? 'opacity-50' : ''}`}
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-2xl">
-                🍽️
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-foreground">{item.name}</h3>
-                  {!item.available && (
-                    <span className="px-2 py-0.5 text-[10px] font-medium bg-destructive/20 text-destructive rounded-full">
-                      Sold Out
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-bold text-secondary">₹{item.price}</span>
-                  {item.available && (
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(item)}
-                      className="h-8 px-3 bg-secondary hover:bg-secondary/90"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add
-                    </Button>
-                  )}
-                </div>
+        {/* Featured Promo */}
+        {activeTab === 'All' && (
+          <div className="px-4 mb-6">
+            <div className="w-full h-36 rounded-2xl relative overflow-hidden shadow-glass group cursor-pointer">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop")' }}
+              ></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent flex flex-col justify-center px-6">
+                <span className="bg-accent/30 text-white text-[10px] font-bold px-2 py-1 rounded-md w-fit backdrop-blur-md mb-2">PROMO</span>
+                <h3 className="text-white text-xl font-bold mb-1">20% OFF</h3>
+                <p className="text-white/90 text-sm font-medium">On all large pizzas today!</p>
               </div>
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Cart Sheet */}
-      <AnimatePresence>
-        {showCart && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
-              onClick={() => setShowCart(false)}
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 max-h-[80vh] overflow-hidden"
-            >
-              <div className="p-4 border-b border-border">
-                <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
-                <h2 className="text-lg font-bold text-foreground">Your Cart</h2>
-              </div>
-              
-              {orderPlaced ? (
-                <div className="p-8 flex flex-col items-center justify-center">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="w-20 h-20 rounded-full bg-success flex items-center justify-center mb-4"
-                  >
-                    <Check className="w-10 h-10 text-success-foreground" />
-                  </motion.div>
-                  <h3 className="text-xl font-bold text-foreground">Order Placed!</h3>
-                  <p className="text-muted-foreground text-center mt-2">
-                    Generating your payment slip...
-                  </p>
-                </div>
-              ) : cart.length === 0 ? (
-                <div className="p-8 text-center">
-                  <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Your cart is empty</p>
-                </div>
-              ) : (
-                <>
-                  <div className="p-4 space-y-3 max-h-[40vh] overflow-y-auto">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 bg-muted/30 rounded-xl p-3">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">₹{item.price} each</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="p-1.5 rounded-lg bg-card hover:bg-muted transition-colors"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="w-8 text-center font-medium">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, 1)}
-                            className="p-1.5 rounded-lg bg-card hover:bg-muted transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="p-4 border-t border-border safe-area-bottom">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-muted-foreground">Total Amount</span>
-                      <span className="text-xl font-bold text-foreground">₹{totalAmount}</span>
-                    </div>
-                    <Button
-                      onClick={handlePlaceOrder}
-                      className="w-full h-12 gradient-primary text-base font-semibold"
-                    >
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      Pay ₹{totalAmount}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Cart Button */}
-      {totalItems > 0 && !showCart && (
-        <motion.button
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          onClick={() => setShowCart(true)}
-          className="fixed bottom-20 left-4 right-4 bg-secondary text-secondary-foreground rounded-xl p-4 flex items-center justify-between z-40"
-        >
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
-            <span className="font-medium">{totalItems} items</span>
           </div>
-          <span className="font-bold">₹{totalAmount}</span>
-        </motion.button>
-      )}
+        )}
+
+        {/* Food Grid */}
+        <div className="px-4 pb-4">
+          <h2 className="text-lg font-bold text-primary mb-3 px-1">Popular Now 🔥</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="glass-card rounded-2xl p-3 flex flex-col gap-3 group hover:scale-[1.02] transition-transform duration-300">
+                <div className="aspect-square rounded-xl overflow-hidden relative bg-gray-100">
+                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${item.image}')` }}></div>
+                  <button className="absolute bottom-2 right-2 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">favorite</span>
+                  </button>
+                </div>
+                <div>
+                  <h3 className="text-primary font-bold text-base leading-tight mb-1 truncate">{item.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-secondary font-semibold text-sm">${item.price.toFixed(2)}</span>
+                    <button className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20 active:scale-90 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">add</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Floating Cart */}
+      <div className="fixed bottom-[90px] left-4 right-4 z-30">
+        <div className="cursor-pointer glass-panel rounded-2xl p-2 flex items-center justify-between shadow-glass group hover:bg-white/70 transition-colors">
+          <div className="flex items-center gap-3 pl-3">
+            <div className="bg-secondary/20 p-2 rounded-lg text-secondary group-hover:scale-110 transition-transform duration-300">
+              <span className="material-symbols-outlined">shopping_bag</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs text-secondary font-semibold uppercase tracking-wide">Total</span>
+              <span className="text-primary font-bold text-lg leading-none">$12.50</span>
+            </div>
+          </div>
+          <button className="bg-primary hover:bg-[#2a5d96] text-white h-10 px-5 rounded-xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-primary/25 group-active:scale-95 transition-transform">
+            Checkout
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

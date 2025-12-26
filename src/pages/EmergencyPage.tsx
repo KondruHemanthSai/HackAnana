@@ -1,113 +1,115 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, Phone, MapPin, AlertTriangle, Users, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const EmergencyPage: React.FC = () => {
+const EmergencyPage = () => {
+  const navigate = useNavigate();
+  const [isSOSActive, setIsSOSActive] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
+  const handleSOSClick = () => {
+    setIsSOSActive(true);
+    // Simulate countdown
+    let timer = 5;
+    const interval = setInterval(() => {
+      timer -= 1;
+      setCountdown(timer);
+      if (timer === 0) {
+        clearInterval(interval);
+        // Trigger alert action here
+      }
+    }, 1000);
+  };
+
+  const handleCancel = () => {
+    setIsSOSActive(false);
+    setCountdown(5);
+  };
+
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="flex flex-col h-full bg-red-50/50 min-h-screen pb-24 fade-in">
       {/* Header */}
-      <header className="px-4 pt-4 pb-4 safe-area-top">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="p-2 -ml-2 rounded-xl hover:bg-card transition-colors">
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Emergency & Safety</h1>
-            <p className="text-sm text-muted-foreground">Quick help when you need it</p>
-          </div>
-        </div>
+      <header className="px-5 pt-8 pb-4 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center size-10 rounded-full bg-white/60 hover:bg-white transition-colors text-[#101419]"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <span className="text-[#101419] font-bold text-lg uppercase tracking-wider">Safety Center</span>
+        <div className="size-10"></div>
       </header>
 
-      {/* SOS Info */}
-      <div className="px-4 mb-6">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="glass-card p-5 bg-destructive/10 border-destructive/30"
+      {/* Main Content */}
+      <main className="flex-1 px-5 flex flex-col items-center">
+
+        {/* SOS Activity Status */}
+        <div className={`transition-all duration-500 ease-out mb-8 text-center ${isSOSActive ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none absolute'}`}>
+          <h2 className="text-3xl font-black text-red-600 mb-2">SENDING ALERT</h2>
+          <p className="text-gray-600 font-medium">Notifying security in <span className="text-red-600 font-bold text-xl">{countdown}s</span></p>
+          <button
+            onClick={handleCancel}
+            className="mt-6 px-8 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
+          >
+            CANCEL REQUEST
+          </button>
+        </div>
+
+        {/* SOS Button */}
+        <button
+          onClick={handleSOSClick}
+          className={`relative group transition-all duration-500 ${isSOSActive ? 'scale-75 opacity-50 pointer-events-none' : 'scale-100'}`}
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-destructive">
-              <Shield className="w-6 h-6 text-destructive-foreground" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-foreground">SOS Emergency</h2>
-              <p className="text-sm text-muted-foreground">Hold the button for 3 seconds</p>
-            </div>
+          {/* Ripple Effects */}
+          <div className="absolute inset-0 bg-red-500 rounded-full opacity-20 animate-ping duration-[2000ms]"></div>
+          <div className="absolute inset-[-20px] bg-red-500 rounded-full opacity-10 animate-pulse"></div>
+
+          {/* Main Button */}
+          <div className="relative size-64 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-[0_20px_50px_rgba(239,68,68,0.4)] flex flex-col items-center justify-center border-4 border-red-400/50 z-10 active:scale-95 transition-transform">
+            <span className="material-symbols-outlined text-white" style={{ fontSize: '64px' }}>sos</span>
+            <span className="text-white font-bold text-xl mt-2 tracking-widest">PRESS HELP</span>
           </div>
-          
-          <p className="text-sm text-muted-foreground mb-4">
-            When activated, the SOS button will:
-          </p>
-          
-          <ul className="space-y-2">
-            {[
-              { icon: Phone, text: 'Call emergency services automatically' },
-              { icon: MapPin, text: 'Share your live GPS location' },
-              { icon: Users, text: 'Alert your emergency contacts' },
-            ].map((item, index) => (
-              <li key={index} className="flex items-center gap-3 text-sm text-foreground">
-                <div className="p-1.5 rounded-lg bg-destructive/20">
-                  <item.icon className="w-4 h-4 text-destructive" />
-                </div>
-                {item.text}
-              </li>
-            ))}
-          </ul>
-        </motion.div>
-      </div>
+        </button>
 
-      {/* Emergency Contacts */}
-      <div className="px-4">
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Contacts</h3>
-        <div className="space-y-3">
-          {[
-            { name: 'Campus Security', number: '1800-XXX-XXXX', available: '24/7' },
-            { name: 'Police', number: '100', available: '24/7' },
-            { name: 'Medical Emergency', number: '102', available: '24/7' },
-            { name: 'Fire Department', number: '101', available: '24/7' },
-            { name: 'Women Helpline', number: '1091', available: '24/7' },
-          ].map((contact, index) => (
-            <motion.a
-              key={contact.name}
-              href={`tel:${contact.number}`}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.05 }}
-              className="module-card flex items-center gap-3"
-            >
-              <div className="p-2.5 rounded-xl bg-secondary">
-                <Phone className="w-5 h-5 text-secondary-foreground" />
+        {/* Map/Location Preview */}
+        <div className={`w-full mt-10 transition-all duration-500 ${isSOSActive ? 'mt-4' : 'mt-10'}`}>
+          <div className="glass-panel p-4 rounded-3xl bg-white/60 backdrop-blur-md">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="size-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <span className="material-symbols-outlined">my_location</span>
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-foreground">{contact.name}</h4>
-                <p className="text-sm text-secondary font-mono">{contact.number}</p>
+              <div>
+                <h3 className="text-[#101419] font-bold text-lg leading-tight">Your Location</h3>
+                <p className="text-gray-500 text-sm font-medium">Near Engineering Block B</p>
               </div>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                {contact.available}
-              </span>
-            </motion.a>
-          ))}
-        </div>
-      </div>
-
-      {/* Tips */}
-      <div className="px-4 mt-6">
-        <div className="glass-card p-4 bg-primary/10">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-foreground">Safety Tips</h4>
-              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                <li>• Keep your phone charged at all times</li>
-                <li>• Share your location with trusted contacts</li>
-                <li>• Be aware of your surroundings</li>
-                <li>• Save emergency numbers in your phone</li>
-              </ul>
+            </div>
+            <div className="h-32 w-full rounded-2xl bg-gray-200 relative overflow-hidden">
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-70"
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?auto=format&fit=crop&q=80&w=400&h=200")' }}
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-600 border-2 border-white shadow-md"></span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Emergency Contacts */}
+        <div className="w-full mt-6 grid grid-cols-2 gap-4">
+          <button className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-white/80 transition-colors">
+            <span className="material-symbols-outlined text-green-600 text-[32px]">local_hospital</span>
+            <span className="text-[#101419] font-bold text-sm">Medical</span>
+          </button>
+          <button className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-white/80 transition-colors">
+            <span className="material-symbols-outlined text-blue-600 text-[32px]">security</span>
+            <span className="text-[#101419] font-bold text-sm">Campus Security</span>
+          </button>
+        </div>
+
+      </main>
     </div>
   );
 };

@@ -17,7 +17,7 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "white", // User requested white background
+        background: "white",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "#3674B5",
@@ -43,24 +43,33 @@ export default {
           DEFAULT: "white",
           foreground: "#101419",
         },
+        // User specific additions
+        "background-light": "#D1F8EF",
+        "background-dark": "#13191f",
+        "glass-surface": "rgba(255, 255, 255, 0.45)",
+        "glass-border": "rgba(255, 255, 255, 0.6)",
+        mint: "#D1F8EF", // Keeping mint alias for backward compatibility
+        "text-dark": "#101419",
+        "text-muted": "#5a728c",
         card: {
           DEFAULT: "white",
           foreground: "#101419",
         },
       },
       fontFamily: {
-        display: ["Plus Jakarta Sans", "sans-serif"],
+        display: ["Plus Jakarta Sans", "Noto Sans", "sans-serif"],
         body: ["Noto Sans", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
+        lg: "1rem",
+        xl: "1.5rem",
+        "2xl": "2rem",
+        "3xl": "2.5rem",
+        full: "9999px",
       },
-      fontFamily: {
-        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+      backgroundImage: {
+        "mesh-gradient": "radial-gradient(at 0% 0%, #A1E3F9 0px, transparent 50%), radial-gradient(at 100% 0%, #D1F8EF 0px, transparent 50%), radial-gradient(at 100% 100%, #A1E3F9 0px, transparent 50%), radial-gradient(at 0% 100%, #D1F8EF 0px, transparent 50%)",
       },
       keyframes: {
         "accordion-down": {

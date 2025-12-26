@@ -1,7 +1,4 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Home, MapPin, UtensilsCrossed, Calendar, MoreHorizontal } from 'lucide-react';
+import { useNavigate, useLocation } from "react-router-dom";
 
 const BottomNav = () => {
   const navigate = useNavigate();
@@ -30,16 +27,21 @@ const BottomNav = () => {
               className={`flex flex-col items-center justify-center w-16 h-full transition-colors gap-1 group ${active ? "text-primary" : "text-muted-foreground hover:text-secondary"
                 }`}
             >
-              isActive ? 'text-secondary' : 'text-muted-foreground'
-                }`}
+              <div
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${active
+                    ? "bg-primary/10"
+                    : "group-hover:bg-secondary/10"
+                  }`}
               >
-              {item.label}
-            </span>
-            </NavLink>
-      );
+                <span className={`material-symbols-outlined text-[24px] ${active ? 'material-symbols-filled' : ''}`}>
+                  {item.icon}
+                </span>
+              </div>
+            </button>
+          );
         })}
+      </nav>
     </div>
-    </nav >
   );
 };
 

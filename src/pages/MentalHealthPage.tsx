@@ -1,211 +1,119 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Bot, User, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+const MentalHealthPage = () => {
+  const navigate = useNavigate();
 
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    role: 'assistant',
-    content: "Hi there! 👋 I'm here to support you. This is a completely anonymous space - your identity is never stored or linked. How are you feeling today?",
-    timestamp: new Date(),
-  },
-];
-
-const quickResponses = [
-  "I'm feeling stressed",
-  "I'm anxious about exams",
-  "I can't focus",
-  "I feel lonely",
-];
-
-const MentalHealthPage: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSend = async (text?: string) => {
-    const messageText = text || input;
-    if (!messageText.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageText,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
-
-    // Check for high-risk keywords
-    const highRiskKeywords = ['suicide', 'kill myself', 'end my life', 'want to die'];
-    const isHighRisk = highRiskKeywords.some(keyword => 
-      messageText.toLowerCase().includes(keyword)
-    );
-
-    if (isHighRisk) {
-      toast.warning('If you are in crisis, please reach out to emergency services or a crisis helpline.', {
-        duration: 10000,
-      });
-    }
-
-    // Simulate AI response
-    setTimeout(() => {
-      const responses = [
-        "I hear you, and I want you to know that your feelings are valid. Would you like to talk more about what's on your mind?",
-        "Thank you for sharing that with me. It takes courage to open up. Let's explore some coping strategies together.",
-        "That sounds really challenging. Remember, it's okay to not be okay sometimes. What usually helps you feel better?",
-        "I'm here for you. Would you like to try a quick breathing exercise, or would you prefer to keep talking?",
-      ];
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
-  };
+  const moods = [
+    { emoji: '😊', label: 'Happy' },
+    { emoji: '😌', label: 'Calm' },
+    { emoji: '😐', label: 'Okay' },
+    { emoji: '😔', label: 'Sad' },
+    { emoji: '😰', label: 'Anxious' },
+  ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="px-4 pt-4 pb-4 safe-area-top border-b border-border">
+    <div className="flex flex-col h-full fade-in pb-24">
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between glass-panel mx-2 mt-2 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
-          <Link to="/" className="p-2 -ml-2 rounded-xl hover:bg-card transition-colors">
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Mental Health Support</h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              Anonymous & Confidential
-            </p>
+          <div className="relative group cursor-pointer">
+            <div className="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-white shadow-sm" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop")' }}></div>
+            <div className="absolute bottom-0 right-0 size-3 bg-green-400 rounded-full border-2 border-white"></div>
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-sm font-semibold text-primary uppercase tracking-wider">Safe Space</h1>
+            <span className="text-xs text-text-muted">Online</span>
           </div>
         </div>
+        <button aria-label="Emergency SOS" className="flex items-center justify-center size-10 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors shadow-sm border border-red-100/50">
+          <span className="material-symbols-outlined text-[20px]">sos</span>
+        </button>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 no-scrollbar">
-        <AnimatePresence initial={false}>
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-secondary-foreground" />
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col px-4 pt-6 gap-6">
+        {/* Greeting */}
+        <section className="animate-float">
+          <h2 className="text-3xl font-bold leading-tight text-primary/90">
+            Hi, Student. <br />
+            <span className="text-text-dark/80 text-2xl font-medium">How are you feeling today?</span>
+          </h2>
+        </section>
+
+        {/* Mood Carousel */}
+        <section>
+          <div className="flex overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 gap-4 snap-x">
+            {moods.map((mood, index) => (
+              <button key={index} className="snap-center shrink-0 flex flex-col items-center gap-2 group">
+                <div className="size-16 rounded-2xl glass-button flex items-center justify-center text-3xl shadow-sm group-hover:scale-105 transition-transform bg-white/40">
+                  {mood.emoji}
                 </div>
-              )}
-              <div
-                className={`max-w-[80%] p-3 rounded-2xl ${
-                  message.role === 'user'
-                    ? 'bg-secondary text-secondary-foreground rounded-br-sm'
-                    : 'bg-card text-card-foreground rounded-bl-sm'
-                }`}
-              >
-                <p className="text-sm leading-relaxed">{message.content}</p>
-              </div>
-              {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {isTyping && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex gap-2"
-          >
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-              <Bot className="w-4 h-4 text-secondary-foreground" />
-            </div>
-            <div className="bg-card p-3 rounded-2xl rounded-bl-sm">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Quick Responses */}
-      {messages.length < 3 && (
-        <div className="px-4 pb-2">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-            {quickResponses.map((response) => (
-              <button
-                key={response}
-                onClick={() => handleSend(response)}
-                className="px-3 py-1.5 bg-card rounded-full text-sm text-muted-foreground whitespace-nowrap hover:bg-secondary/20 transition-colors"
-              >
-                {response}
+                <span className="text-xs font-semibold text-primary">{mood.label}</span>
               </button>
             ))}
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* Input */}
-      <div className="px-4 pb-4 safe-area-bottom border-t border-border pt-3">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Share what's on your mind..."
-            className="flex-1 bg-card rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 ring-secondary/50"
-          />
-          <Button
-            onClick={() => handleSend()}
-            disabled={!input.trim()}
-            size="icon"
-            className="h-11 w-11 rounded-xl gradient-primary"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-        
-        <p className="text-[10px] text-muted-foreground text-center mt-2">
-          🔒 Your conversations are never stored or linked to your identity
-        </p>
-      </div>
+        {/* Chat Preview Area */}
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-primary">Recent Support</h3>
+            <button className="text-xs font-bold text-secondary hover:text-primary transition-colors">View All</button>
+          </div>
+          {/* Chat Bubble */}
+          <div className="glass-panel p-4 rounded-2xl flex items-start gap-3 transform hover:translate-y-[-2px] transition-transform duration-300 cursor-pointer">
+            <div className="bg-center bg-no-repeat bg-cover rounded-full size-12 border-2 border-white shrink-0" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop")' }}></div>
+            <div className="flex flex-col flex-1 gap-1">
+              <div className="flex justify-between items-center w-full">
+                <span className="font-bold text-sm text-primary">Campus Support</span>
+                <span className="text-[10px] text-text-muted font-medium bg-white/50 px-2 py-0.5 rounded-full">2m ago</span>
+              </div>
+              <div className="bg-white/50 rounded-lg rounded-tl-none p-3 text-sm text-text-dark/90 leading-relaxed shadow-sm">
+                It's okay not to be okay. I'm here if you need to talk or just vent about finals. 💙
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Actions */}
+        <section className="flex flex-col gap-3">
+          <button className="w-full h-14 bg-primary hover:bg-[#2a5d96] text-white rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 font-bold text-base transition-all active:scale-[0.98]">
+            <span className="material-symbols-outlined">forum</span>
+            Chat with a Counselor
+          </button>
+          <button className="w-full h-14 glass-button text-primary font-bold rounded-2xl flex items-center justify-center gap-2 text-base shadow-sm hover:bg-white/60">
+            <span className="material-symbols-outlined">smart_toy</span>
+            Talk to CalmBot
+          </button>
+        </section>
+
+        {/* Quick Resources Grid */}
+        <section className="grid grid-cols-2 gap-3 mt-2">
+          {/* Resource 1 */}
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group cursor-pointer hover:bg-white/40 transition-colors">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-accent/30 rounded-full blur-xl group-hover:bg-accent/50 transition-colors"></div>
+            <div className="size-10 rounded-full bg-white/70 flex items-center justify-center text-primary mb-2 shadow-sm">
+              <span className="material-symbols-outlined">self_improvement</span>
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-primary">Breathe</h4>
+              <p className="text-[10px] text-text-muted">3 min exercise</p>
+            </div>
+          </div>
+          {/* Resource 2 */}
+          <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden group cursor-pointer hover:bg-white/40 transition-colors">
+            <div className="absolute right-[-10px] top-[-10px] size-16 bg-secondary/20 rounded-full blur-xl group-hover:bg-secondary/40 transition-colors"></div>
+            <div className="size-10 rounded-full bg-white/70 flex items-center justify-center text-primary mb-2 shadow-sm">
+              <span className="material-symbols-outlined">headphones</span>
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-primary">Lofi Mix</h4>
+              <p className="text-[10px] text-text-muted">Focus & Calm</p>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 };

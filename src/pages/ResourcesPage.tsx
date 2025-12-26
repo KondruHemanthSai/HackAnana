@@ -1,154 +1,150 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Search, Building2, Dumbbell, Filter, Clock, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-type ResourceType = 'all' | 'rooms' | 'equipment';
+const ResourcesPage = () => {
+  const [activeTab, setActiveTab] = useState('All');
 
-interface Resource {
-  id: string;
-  name: string;
-  type: 'room' | 'equipment';
-  available: boolean;
-  location: string;
-  capacity?: number;
-  availableUntil?: string;
-}
+  const categories = ['All', 'Study', 'Dining', 'Health', 'Tech'];
 
-const resources: Resource[] = [
-  { id: '1', name: 'Conference Room A', type: 'room', available: true, location: 'Block A, Floor 2', capacity: 20, availableUntil: '4:00 PM' },
-  { id: '2', name: 'Study Room 101', type: 'room', available: true, location: 'Library, Floor 1', capacity: 8, availableUntil: '6:00 PM' },
-  { id: '3', name: 'Seminar Hall', type: 'room', available: false, location: 'Block B, Ground Floor', capacity: 100 },
-  { id: '4', name: 'Badminton Racket Set', type: 'equipment', available: true, location: 'Sports Complex' },
-  { id: '5', name: 'Football', type: 'equipment', available: true, location: 'Sports Complex' },
-  { id: '6', name: 'Projector', type: 'equipment', available: false, location: 'IT Department' },
-  { id: '7', name: 'Lab 204', type: 'room', available: true, location: 'Block C, Floor 2', capacity: 30, availableUntil: '5:00 PM' },
-  { id: '8', name: 'Cricket Kit', type: 'equipment', available: true, location: 'Sports Complex' },
-];
+  const resources = [
+    {
+      id: 1,
+      name: 'Main Library',
+      category: 'Study',
+      status: 'Open Now',
+      statusColor: 'text-green-700',
+      dotColor: 'bg-green-500',
+      location: 'Central Campus',
+      meta: '50% Full',
+      image: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=200&auto=format&fit=crop',
+    },
+    {
+      id: 2,
+      name: 'Student Center',
+      category: 'Dining',
+      status: 'Closing Soon (1hr)',
+      statusColor: 'text-orange-600',
+      dotColor: 'bg-orange-400',
+      location: 'North Wing',
+      meta: 'Food Court',
+      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop',
+    },
+    {
+      id: 3,
+      name: 'North Gym',
+      category: 'Health',
+      status: 'Open Now',
+      statusColor: 'text-green-700',
+      dotColor: 'bg-green-500',
+      location: 'West Campus',
+      meta: 'Low Traffic',
+      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=200&auto=format&fit=crop',
+    },
+    {
+      id: 4,
+      name: 'Tech Lab A',
+      category: 'Tech',
+      status: 'Closed',
+      statusColor: 'text-red-600',
+      dotColor: 'bg-red-400',
+      location: 'Science Block',
+      meta: 'Opens 8 AM',
+      image: 'https://images.unsplash.com/photo-1517433456452-f9633a875f6f?q=80&w=200&auto=format&fit=crop',
+    },
+  ];
 
-const ResourcesPage: React.FC = () => {
-  const [filter, setFilter] = useState<ResourceType>('all');
-  const [search, setSearch] = useState('');
-
-  const filteredResources = resources.filter(resource => {
-    const matchesFilter = filter === 'all' || 
-      (filter === 'rooms' && resource.type === 'room') ||
-      (filter === 'equipment' && resource.type === 'equipment');
-    const matchesSearch = resource.name.toLowerCase().includes(search.toLowerCase()) ||
-      resource.location.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredResources = activeTab === 'All'
+    ? resources
+    : resources.filter(r => r.category === activeTab);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="flex flex-col h-full fade-in pb-28">
       {/* Header */}
-      <header className="px-4 pt-4 pb-4 safe-area-top">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="p-2 -ml-2 rounded-xl hover:bg-card transition-colors">
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </Link>
+      <header className="px-6 pt-12 pb-2">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Campus Resources</h1>
-            <p className="text-sm text-muted-foreground">Rooms & equipment availability</p>
+            <p className="text-secondary text-sm font-semibold tracking-wider uppercase mb-1">Campus OS</p>
+            <h1 className="text-[#101419] text-3xl font-extrabold leading-tight">Resources 🎓</h1>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-white/50 border border-white flex items-center justify-center overflow-hidden shadow-sm">
+            <span className="material-symbols-outlined text-primary">person</span>
           </div>
         </div>
       </header>
 
-      {/* Search */}
-      <div className="px-4 mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search rooms or equipment..."
-            className="w-full bg-card rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 ring-secondary/50"
-          />
-        </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="px-4 mb-4">
-        <div className="flex gap-2">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'rooms', label: 'Rooms', icon: Building2 },
-            { key: 'equipment', label: 'Equipment', icon: Dumbbell },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key as ResourceType)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                filter === tab.key
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'bg-card text-muted-foreground'
-              }`}
-            >
-              {tab.icon && <tab.icon className="w-4 h-4" />}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Resources List */}
-      <div className="px-4 space-y-3">
-        {filteredResources.map((resource, index) => (
-          <motion.div
-            key={resource.id}
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className="module-card"
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${resource.type === 'room' ? 'bg-primary' : 'bg-secondary'}`}>
-                {resource.type === 'room' ? (
-                  <Building2 className="w-5 h-5 text-primary-foreground" />
-                ) : (
-                  <Dumbbell className="w-5 h-5 text-secondary-foreground" />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-foreground">{resource.name}</h3>
-                  <span
-                    className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                      resource.available
-                        ? 'bg-success/20 text-success'
-                        : 'bg-destructive/20 text-destructive'
-                    }`}
-                  >
-                    {resource.available ? 'Available' : 'In Use'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{resource.location}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  {resource.capacity && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {resource.capacity} seats
-                    </span>
-                  )}
-                  {resource.availableUntil && resource.available && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Until {resource.availableUntil}
-                    </span>
-                  )}
-                </div>
-              </div>
+      {/* Sticky Search Bar */}
+      <div className="sticky top-0 z-30 px-6 py-4 bg-gradient-to-b from-background/90 to-background/0 backdrop-blur-[2px]">
+        <label className="flex flex-col w-full group transition-all duration-300">
+          <div className="flex w-full items-center rounded-2xl h-14 glass-panel shadow-[0_4px_20px_rgba(0,0,0,0.03)] px-4 gap-3 focus-within:ring-2 focus-within:ring-primary/20">
+            <span className="material-symbols-outlined text-text-muted">search</span>
+            <input
+              className="flex w-full min-w-0 flex-1 bg-transparent border-none text-[#101419] placeholder:text-text-muted focus:outline-0 focus:ring-0 text-base font-medium h-full p-0"
+              placeholder="Search for labs, dining, gyms..."
+            />
+            <div className="w-8 h-8 rounded-lg bg-white/40 flex items-center justify-center cursor-pointer hover:bg-white/60 transition-colors">
+              <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
             </div>
-          </motion.div>
+          </div>
+        </label>
+      </div>
+
+      {/* Category Chips */}
+      <div className="flex gap-3 px-6 pb-6 overflow-x-auto no-scrollbar snap-x">
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => setActiveTab(category)}
+            className={`snap-start flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl px-5 shadow-sm transition-transform active:scale-95 ${activeTab === category
+                ? 'glass-chip-active'
+                : 'glass-chip hover:bg-white/50'
+              }`}
+          >
+            {category !== 'All' && (
+              <span className="material-symbols-outlined text-base">
+                {category === 'Study' ? 'school' :
+                  category === 'Dining' ? 'restaurant' :
+                    category === 'Health' ? 'fitness_center' : 'computer'}
+              </span>
+            )}
+            <p className={`text-sm font-medium leading-normal ${activeTab === category ? 'text-white font-bold' : 'text-[#101419]'}`}>
+              {category}
+            </p>
+          </button>
         ))}
       </div>
 
-      {filteredResources.length === 0 && (
-        <div className="px-4 py-8 text-center">
-          <p className="text-muted-foreground">No resources found</p>
-        </div>
-      )}
+      {/* Resource Cards List */}
+      <div className="flex flex-col gap-5 px-6">
+        {filteredResources.map((resource) => (
+          <div key={resource.id} className="glass-panel p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(54,115,181,0.15)] transition-all duration-300 group cursor-pointer">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-1.5 flex-[2_2_0px]">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    {resource.status.includes('Open') && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    )}
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${resource.dotColor}`}></span>
+                  </span>
+                  <p className={`${resource.statusColor} text-xs font-bold uppercase tracking-wide`}>{resource.status}</p>
+                </div>
+                <h3 className="text-[#101419] text-lg font-bold leading-tight group-hover:text-primary transition-colors">{resource.name}</h3>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/50 text-text-muted">
+                    {resource.location}
+                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${resource.status === 'Open Now' ? 'bg-accent/30 text-primary' : resource.status.includes('Closing') ? 'bg-white/50 text-text-muted' : 'bg-green-100 text-green-800'}`}>
+                    {resource.meta}
+                  </span>
+                </div>
+              </div>
+              <div
+                className={`w-24 h-24 bg-center bg-no-repeat bg-cover rounded-xl shadow-inner shrink-0 ${resource.status === 'Closed' ? 'grayscale' : ''}`}
+                style={{ backgroundImage: `url('${resource.image}')` }}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
