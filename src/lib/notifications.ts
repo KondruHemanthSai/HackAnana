@@ -16,22 +16,23 @@ export const requestNotificationPermission = async (userId?: string): Promise<st
   try {
     // Check if notifications are supported
     if (!('Notification' in window)) {
-      console.log('Notifications not supported');
+      console.error('Notifications not supported in this browser');
       return null;
     }
 
     // Request permission
     const permission = await Notification.requestPermission();
+    console.log('Notification permission status:', permission);
 
     if (permission !== 'granted') {
-      console.log('Notification permission denied');
+      console.warn('Notification permission denied');
       return null;
     }
 
     // Get messaging instance
     const messaging = await getMessagingInstance();
     if (!messaging) {
-      console.log('FCM not available');
+      console.error('FCM messaging instance not available');
       return null;
     }
 
@@ -42,7 +43,7 @@ export const requestNotificationPermission = async (userId?: string): Promise<st
     // Get FCM token
     const vapidKey = getVapidKey();
     if (!vapidKey) {
-      console.warn('VAPID key not configured');
+      console.error('VAPID key is missing in environment variables (VITE_FIREBASE_VAPID_KEY)');
       return null;
     }
 
@@ -52,7 +53,7 @@ export const requestNotificationPermission = async (userId?: string): Promise<st
     });
 
     if (token) {
-      console.log('FCM Token:', token);
+      console.log('FCM Token generated successfully'); // Don't log full token for security/noise
 
       // Save token to Firestore if user is logged in
       if (userId && db) {
@@ -60,6 +61,8 @@ export const requestNotificationPermission = async (userId?: string): Promise<st
       }
 
       return token;
+    } else {
+      console.error('No FCM registration token available. Request permission to generate one.');
     }
 
     return null;

@@ -1,12 +1,73 @@
-import React from 'react';
-import { ArrowLeft, Bell, BellOff, Moon, Shield, Smartphone, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Bell, BellOff, Moon, Shield, Smartphone, LogOut, Plus, Trash2, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/components/ThemeProvider';
+import { db } from '@/lib/firebase';
+import { collection, query, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { toast } from 'sonner';
+
+interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+}
 
 const SettingsPage: React.FC = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
+
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [isAddingContact, setIsAddingContact] = useState(false);
+
+  // Fetch Emergency Contacts
+  useEffect(() => {
+    if (!user || !db) return;
+    const q = query(collection(db, `users/${user.id}/emergency_contacts`));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as EmergencyContact[];
+      setContacts(items);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAddContact = async () => {
+    if (!newContactName || !newContactPhone) {
+      toast.error("Please enter name and phone number");
+      return;
+    }
+    if (!db || !user) return;
+
+    try {
+      await addDoc(collection(db, `users/${user.id}/emergency_contacts`), {
+        name: newContactName,
+        phone: newContactPhone,
+        createdAt: new Date().toISOString()
+      });
+      toast.success("Emergency contact added");
+      setNewContactName('');
+      setNewContactPhone('');
+      setIsAddingContact(false);
+    } catch (error) {
+      console.error("Error adding contact:", error);
+      toast.error("Failed to add contact");
+    }
+  };
+
+  const handleDeleteContact = async (id: string) => {
+    if (!db || !user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.id}/emergency_contacts`, id));
+      toast.success("Contact removed");
+    } catch (error) {
+      toast.error("Failed to remove contact");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -24,6 +85,94 @@ const SettingsPage: React.FC = () => {
 
       {/* Settings List */}
       <div className="px-4 space-y-6">
+
+        {/* Appearance */}
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Appearance</h3>
+          <div className="glass-card divide-y divide-border">
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Moon className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <h4 className="font-medium text-foreground">Dark Mode</h4>
+                  <p className="text-xs text-muted-foreground">Adjust display theme</p>
+                </div>
+              </div>
+              <Switch
+                checked={theme === 'dark'}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Emergency Contacts */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-muted-foreground">Emergency Contacts</h3>
+            <button
+              onClick={() => setIsAddingContact(!isAddingContact)}
+              className="text-xs font-bold text-primary flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Add New
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {isAddingContact && (
+              <div className="glass-card p-4 animate-in slide-in-from-top-2">
+                <div className="space-y-3">
+                  <input
+                    placeholder="Contact Name (e.g., Mom)"
+                    value={newContactName}
+                    onChange={e => setNewContactName(e.target.value)}
+                    className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm outline-none border focus:border-primary"
+                  />
+                  <input
+                    placeholder="Phone Number (+91...)"
+                    type="tel"
+                    value={newContactPhone}
+                    onChange={e => setNewContactPhone(e.target.value)}
+                    className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm outline-none border focus:border-primary"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAddContact} className="flex-1">Save</Button>
+                    <Button size="sm" variant="outline" onClick={() => setIsAddingContact(false)}>Cancel</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contacts.map(contact => (
+              <div key={contact.id} className="glass-card p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground">{contact.name}</h4>
+                    <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteContact(contact.id)}
+                  className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            {contacts.length === 0 && !isAddingContact && (
+              <div className="text-center py-6 glass-card border-dashed">
+                <Shield className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-muted-foreground">No emergency contacts added.</p>
+                <p className="text-xs text-muted-foreground/60">Add contacts to alert them via SOS.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Notifications */}
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Notifications</h3>
@@ -51,56 +200,6 @@ const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Appearance */}
-        <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Appearance</h3>
-          <div className="glass-card divide-y divide-border">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Moon className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <h4 className="font-medium text-foreground">Dark Mode</h4>
-                  <p className="text-xs text-muted-foreground">Always enabled</p>
-                </div>
-              </div>
-              <Switch defaultChecked disabled />
-            </div>
-          </div>
-        </section>
-
-        {/* Privacy */}
-        <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Privacy & Security</h3>
-          <div className="glass-card divide-y divide-border">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <h4 className="font-medium text-foreground">Location Access</h4>
-                  <p className="text-xs text-muted-foreground">For SOS and transport features</p>
-                </div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </div>
-        </section>
-
-        {/* About */}
-        <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">About</h3>
-          <div className="glass-card divide-y divide-border">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <h4 className="font-medium text-foreground">App Version</h4>
-                  <p className="text-xs text-muted-foreground">1.0.0 (Build 1)</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Account Actions */}
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Account</h3>
@@ -114,6 +213,11 @@ const SettingsPage: React.FC = () => {
               Sign Out
             </Button>
           </div>
+        </section>
+
+        {/* About */}
+        <section className="pt-4 text-center">
+          <p className="text-xs text-muted-foreground">Campus360 v1.0.1</p>
         </section>
       </div>
     </div>

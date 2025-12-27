@@ -1,15 +1,17 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, limit, onSnapshot } from "firebase/firestore";
+import { toast } from "sonner";
 
 const HomePage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
 
+  // Fetch Events
   useEffect(() => {
     if (!db) return;
     const q = query(collection(db, 'events'), limit(3));
@@ -19,6 +21,19 @@ const HomePage = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch Emergency Contacts
+  useEffect(() => {
+    if (!db || !user) return;
+    const q = query(collection(db, `users/${user.id}/emergency_contacts`));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setEmergencyContacts(items);
+    }, (err) => {
+      console.error("Error fetching contacts", err);
+    });
+    return () => unsubscribe();
+  }, [user]);
 
   const [sosClicks, setSosClicks] = useState(0);
   const [isSosActive, setIsSosActive] = useState(false);
@@ -37,10 +52,10 @@ const HomePage = () => {
         clearTimeout(clickTimeoutRef.current);
       }
 
-      // Reset count if no 3rd click within 1 second
+      // Reset count if no 3rd click within 1.5 second
       clickTimeoutRef.current = setTimeout(() => {
         setSosClicks(0);
-      }, 1000);
+      }, 1500);
 
       // Trigger SOS
       if (newCount >= 3) {
@@ -53,6 +68,45 @@ const HomePage = () => {
     });
   };
 
+  const triggerSOSActions = () => {
+    console.log("SOS ACTIONS TRIGGERED");
+
+    // 1. Get Location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+        // 2. Call Police/Security
+        window.location.href = "tel:7075933919";
+
+        // 3. Send Email
+        // (Using existing logic or enhanced)
+
+        // 4. WhatsApp Message to First Contact
+        if (emergencyContacts.length > 0) {
+          const contact = emergencyContacts[0];
+          const message = `HELP! I am in danger. Location: ${mapsLink}`;
+          // Remove non-digit chars from phone
+          const phone = contact.phone.replace(/\D/g, '');
+          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Open in new tab or specific window logic
+          window.open(waUrl, '_blank');
+        } else {
+          toast.error("No emergency contacts for WhatsApp alert! (Add in Settings)");
+        }
+
+      }, (error) => {
+        console.error("Location error", error);
+        // Fallback without location
+        window.location.href = "tel:7075933919";
+      });
+    } else {
+      window.location.href = "tel:7075933919";
+    }
+  };
+
   // Countdown Logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -61,9 +115,9 @@ const HomePage = () => {
         setCountdown(prev => prev - 1);
       }, 1000);
     } else if (isSosActive && countdown === 0) {
-      // Trigger Action (e.g., sim call)
-      console.log("SOS CALL INITIATED");
-      // Optional: window.location.href = "tel:112";
+      triggerSOSActions();
+      setIsSosActive(false);
+      setCountdown(5); // Reset
     }
     return () => clearInterval(interval);
   }, [isSosActive, countdown]);
@@ -77,7 +131,7 @@ const HomePage = () => {
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <div className="flex flex-col animate-in fade-in duration-500">
+    <div className="flex flex-col animate-in fade-in duration-500 min-h-screen pb-24">
       {/* Red Screen Overlay */}
       {isSosActive && (
         <div className="fixed inset-0 z-[100] bg-red-600 flex flex-col items-center justify-center text-white animate-in fade-in duration-200">
@@ -90,7 +144,7 @@ const HomePage = () => {
               setSosClicks(0);
               setCountdown(5);
             }}
-            className="bg-white text-red-600 px-8 py-3 rounded-full font-bold text-lg active:scale-95 transition-transform"
+            className="bg-white text-red-600 px-8 py-3 rounded-full font-bold text-lg active:scale-95 transition-transform shadow-xl"
           >
             CANCEL
           </button>
@@ -112,26 +166,33 @@ const HomePage = () => {
       {/* SOS Hero Section */}
       <section className="flex flex-col items-center justify-center py-8">
         <div className="relative w-48 h-48 flex items-center justify-center mb-6">
-          {/* Outer Glow Rings */}
-          <div className="absolute inset-0 rounded-full border-4 border-primary/10 animate-[spin_10s_linear_infinite]"></div>
-          <div className="absolute inset-4 rounded-full border-4 border-dashed border-primary/20 animate-[spin_15s_linear_infinite_reverse]"></div>
+          {/* Outer Glow Rings (Red for Danger) */}
+          <div className="absolute inset-0 rounded-full border-4 border-red-500/20 animate-[spin_10s_linear_infinite]"></div>
+          <div className="absolute inset-4 rounded-full border-4 border-dashed border-red-500/30 animate-[spin_15s_linear_infinite_reverse]"></div>
 
           {/* Main SOS Button */}
           <button
             onClick={handleSosClick}
-            className="relative w-36 h-36 rounded-full bg-gradient-to-br from-white to-[#ebf4f5] shadow-[0_10px_40px_rgba(54,116,181,0.25)] flex flex-col items-center justify-center z-10 active:scale-95 transition-all duration-300 border-4 border-white/60 group overflow-hidden"
+            className={`relative w-36 h-36 rounded-full shadow-[0_10px_40px_rgba(220,38,38,0.4)] flex flex-col items-center justify-center z-10 active:scale-95 transition-all duration-300 border-4 border-white/60 group overflow-hidden
+              bg-gradient-to-br from-red-500 to-red-600 text-white
+            `}
           >
-            <div className={`absolute inset - 0 transition - opacity duration - 200 ${sosClicks > 0 ? 'bg-red-500/10 opacity-100' : 'bg-primary/5 opacity-0 group-hover:opacity-100'} `}></div>
-            <span className={`material - symbols - outlined text - [48px] mb - 1 material - symbols - filled drop - shadow - sm transition - colors ${sosClicks > 0 ? 'text-red-500' : 'text-primary'} `}>emergency_share</span>
-            <span className={`font - black text - xl tracking - wider transition - colors ${sosClicks > 0 ? 'text-red-500' : 'text-primary'} `}>SOS</span>
+            <div className={`absolute inset-0 transition-opacity duration-200 ${sosClicks > 0 ? 'bg-white/20' : 'opacity-0'} `}></div>
+            <span className="material-symbols-outlined text-[48px] mb-1 material-symbols-filled drop-shadow-sm">emergency_share</span>
+            <span className="font-black text-xl tracking-wider">SOS</span>
           </button>
 
           {/* Pulsing Effect behind button */}
-          <div className="absolute inset-0 rounded-full bg-primary/10 -z-10 animate-ripple"></div>
+          <div className="absolute inset-0 rounded-full bg-red-500/10 -z-10 animate-ripple"></div>
         </div>
         <div className="text-center space-y-1">
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Emergency?</h2>
-          <p className="text-muted-foreground text-base font-medium">Press 3 times for help ({sosClicks}/3)</p>
+          <p className="text-muted-foreground text-base font-medium">
+            Tap 3 times for help
+            <span className={`ml-2 font-bold ${sosClicks > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+              ({sosClicks}/3)
+            </span>
+          </p>
         </div>
       </section>
 
@@ -153,13 +214,14 @@ const HomePage = () => {
       </div>
 
       {/* Admin Quick Access */}
-      {(user?.role === 'super_admin' || user?.role === 'food_admin' || user?.role === 'resource_admin') && (
+      {(user?.role === 'super_admin' || user?.role === 'food_admin' || user?.role === 'resource_admin' || user?.role === 'transport_admin') && (
         <div className="px-6 mb-4">
           <button
             onClick={() => {
-              if (user.role === 'super_admin') navigate('/admin/users');
+              if (user.role === 'super_admin') navigate('/admin/dashboard');
               else if (user.role === 'food_admin') navigate('/admin/food');
               else if (user.role === 'resource_admin') navigate('/admin/resources');
+              else if (user.role === 'transport_admin') navigate('/admin/transport');
             }}
             className="w-full h-12 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
@@ -169,8 +231,8 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Recent Updates (Placeholder for "Something Else") */}
-      <div className="px-5 mt-6">
+      {/* Recent Updates */}
+      <div className="px-5 mt-6 mb-8">
         <h3 className="text-primary text-lg font-bold mb-3">Recent Updates</h3>
         <div className="space-y-3">
           {recentEvents.length > 0 ? (
@@ -188,13 +250,13 @@ const HomePage = () => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-[#101419] text-sm truncate">{event.title}</h4>
-                  <p className="text-secondary text-xs truncate">{event.description || event.date + ' @ ' + event.location}</p>
+                  <h4 className="font-bold text-foreground text-sm truncate">{event.title}</h4>
+                  <p className="text-muted-foreground text-xs truncate">{event.description || event.date + ' @ ' + event.location}</p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center py-4 bg-white/50 rounded-2xl">
+            <div className="text-center py-4 glass-card rounded-2xl">
               <p className="text-sm text-muted-foreground">No recent updates.</p>
             </div>
           )}
