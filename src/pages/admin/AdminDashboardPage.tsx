@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { UtensilsCrossed, Building2, Calendar, Users, LogOut, Shield } from 'lucide-react';
+import { UtensilsCrossed, Building2, Calendar, Users, LogOut, Shield, Bus, Bell } from 'lucide-react';
 
 const AdminDashboardPage: React.FC = () => {
     const { user, logout } = useAuth();
@@ -48,6 +48,15 @@ const AdminDashboardPage: React.FC = () => {
             role: 'all'
         },
         {
+            title: 'Transport Admin',
+            description: 'Manage bus routes & tracking',
+            icon: Bus, // Make sure to import Bus from lucide-react (it was missing in file)
+            color: 'text-indigo-500',
+            bgColor: 'bg-indigo-500/10',
+            path: '/admin/transport',
+            role: 'all'
+        },
+        {
             title: 'Resource Admin',
             description: 'Manage bookings & inventory',
             icon: Building2,
@@ -55,6 +64,15 @@ const AdminDashboardPage: React.FC = () => {
             bgColor: 'bg-purple-500/10',
             path: '/admin/resources',
             role: 'all'
+        },
+        {
+            title: 'Notifications',
+            description: 'Broadcast alerts to students',
+            icon: Bell, // Make sure to import Bell from lucide-react
+            color: 'text-indigo-500',
+            bgColor: 'bg-indigo-500/10',
+            path: '/admin/notifications',
+            role: 'super_admin'
         }
     ];
 

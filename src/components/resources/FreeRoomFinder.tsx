@@ -1,15 +1,33 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Building, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ROOMS, OCCUPIED_SCHEDULE, PERIODS } from '@/lib/timetableData';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const FreeRoomFinder = ({ onBack }: { onBack: () => void }) => {
     const [selectedDay, setSelectedDay] = useState<string>("Monday");
     const [selectedPeriod, setSelectedPeriod] = useState<number>(1);
     const [selectedFloor, setSelectedFloor] = useState<string>("all");
+    const [manualRoomData, setManualRoomData] = useState<Record<string, any>>({});
+
+    useEffect(() => {
+        if (!db) return;
+        const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
+            const data: Record<string, any> = {};
+            snapshot.docs.forEach(doc => {
+                const room = doc.data();
+                if (room.name) {
+                    data[room.name] = room;
+                }
+            });
+            setManualRoomData(data);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const floors = [
@@ -33,27 +51,44 @@ const FreeRoomFinder = ({ onBack }: { onBack: () => void }) => {
 
     // Logic to find free rooms
     const getFreeRooms = () => {
-        // Lunch Break Rule: 12:40 PM - 01:20 PM
-        // The request says: "There is a 40-minute lunch break from 12:40 PM to 1:20 PM"
-        // "During lunch break, ALL rooms must be marked FREE"
-        // We need to check if the current time matches this, OR if the user selects a hypothetical "Lunch" Slot?
-        // The filter is by "Period 1-8".
-        // Period 4 ends 12:40. Period 5 starts 01:20.
-        // If we strictly follow Period selection, we don't have a "Lunch" period in the dropdown 1-8.
-        // However, for the sake of the tool, user selects Period.
-        // Let's assume standard periods.
+        // 1. Get baseline from Timetable
+        const timetableOccupied = OCCUPIED_SCHEDULE[selectedDay]?.[selectedPeriod] || [];
 
-        // Normal Check
-        const occupied = OCCUPIED_SCHEDULE[selectedDay]?.[selectedPeriod] || [];
-        const free = ROOMS.filter(room => !occupied.includes(room));
+        // 2. Filter using both Timetable AND Manual Overrides
+        const free = ROOMS.filter(room => {
+            const manualState = manualRoomData[room];
 
-        // Apply Floor Filter
+            // If Admin has explicitly set a status, perform override
+            if (manualState) {
+                return manualState.available === true; // STRICT override
+            }
+
+            // Fallback to Timetable
+            return !timetableOccupied.includes(room);
+        });
+
+        // 3. Apply Floor Filter
         if (selectedFloor === "all") return free;
         return free.filter(room => getFloor(room) === selectedFloor);
     };
 
     const getOccupiedRooms = () => {
-        const occupied = OCCUPIED_SCHEDULE[selectedDay]?.[selectedPeriod] || [];
+        // 1. Get baseline
+        const timetableOccupied = OCCUPIED_SCHEDULE[selectedDay]?.[selectedPeriod] || [];
+
+        // 2. Filter
+        const occupied = ROOMS.filter(room => {
+            const manualState = manualRoomData[room];
+
+            // If Admin override exists
+            if (manualState) {
+                return manualState.available === false;
+            }
+
+            // Fallback
+            return timetableOccupied.includes(room);
+        });
+
         if (selectedFloor === "all") return occupied;
         return occupied.filter(room => getFloor(room) === selectedFloor);
     }
@@ -144,7 +179,23 @@ const FreeRoomFinder = ({ onBack }: { onBack: () => void }) => {
                                         className="bg-green-500/10 border border-green-500/20 text-green-700 rounded-xl p-3 flex flex-col items-center justify-center gap-1 shadow-sm"
                                     >
                                         <span className="text-lg font-bold">{room}</span>
-                                        <span className="text-[10px] uppercase font-bold opacity-70">Free</span>
+                                        <span className="text-[10px] uppercase font-bold opacity-70">
+                                            {(() => {
+                                                const manual = manualRoomData[room];
+                                                if (manual?.availabilityDetails) {
+                                                    // Format HH:mm to h:mm A
+                                                    try {
+                                                        const [hours, minutes] = manual.availabilityDetails.split(':');
+                                                        const date = new Date();
+                                                        date.setHours(parseInt(hours), parseInt(minutes));
+                                                        return `Free until ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+                                                    } catch (e) {
+                                                        return manual.availabilityDetails;
+                                                    }
+                                                }
+                                                return "Free";
+                                            })()}
+                                        </span>
                                     </motion.div>
                                 ))}
                             </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, AlertTriangle, Phone } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SOSButtonProps {
   onActivate?: () => void;
@@ -16,7 +17,7 @@ const SOSButton: React.FC<SOSButtonProps> = ({ onActivate }) => {
   const handlePressStart = () => {
     setIsPressed(true);
     setCountdown(3);
-    
+
     let count = 3;
     countdownRef.current = setInterval(() => {
       count--;
@@ -27,7 +28,7 @@ const SOSButton: React.FC<SOSButtonProps> = ({ onActivate }) => {
         triggerSOS();
       }
     }, 1000);
-    
+
     holdTimerRef.current = setTimeout(() => {
       // SOS triggered after 3 seconds
     }, 3000);
@@ -47,29 +48,49 @@ const SOSButton: React.FC<SOSButtonProps> = ({ onActivate }) => {
   const triggerSOS = () => {
     setIsPressed(false);
     setCountdown(null);
-    
+
     // Get location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          const locationLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
           toast.success('SOS Activated!', {
-            description: `Emergency contacts notified. Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            description: `Calling emergency contacts... Location sent.`,
             duration: 5000,
           });
-          
-          // Mock call to emergency number
-          // In production: window.location.href = 'tel:+1234567890';
+
+          // Call Emergency Number
+          const phoneNumber = "7075933919";
+          window.location.href = `tel:${phoneNumber}`;
+
+          // Send Email (using mailto for immediate client-side action without backend)
+          const email = "2420030622@klh.edu.in";
+          const subject = "SOS ALERT - DANGER REPORTED";
+          const body = `URGENT: A danger has been reported by the user.\n\nLocation: ${locationLink}\n\nPlease take immediate action.`;
+
+          // Open mail client in new window to n ot block phone call
+          window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
         },
         () => {
           toast.success('SOS Activated!', {
-            description: 'Emergency contacts notified. Location unavailable.',
+            description: 'Calling emergency contacts...',
             duration: 5000,
           });
+
+          const phoneNumber = "7075933919";
+          window.location.href = `tel:${phoneNumber}`;
+
+          // Send Email fallback (no location)
+          const email = "2420030622@klh.edu.in";
+          const subject = "SOS ALERT - DANGER REPORTED";
+          const body = `URGENT: A danger has been reported by the user.\n\nLocation Unavailable.\n\nPlease take immediate action.`;
+          window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
         }
       );
     }
-    
+
     onActivate?.();
   };
 
@@ -92,9 +113,9 @@ const SOSButton: React.FC<SOSButtonProps> = ({ onActivate }) => {
           />
         </>
       )}
-      
+
       <motion.button
-        className="sos-button relative w-16 h-16 rounded-full flex items-center justify-center text-destructive-foreground"
+        className="sos-button relative w-16 h-16 rounded-full flex items-center justify-center bg-red-600 text-white shadow-lg shadow-red-600/50"
         onTouchStart={handlePressStart}
         onTouchEnd={handlePressEnd}
         onMouseDown={handlePressStart}
@@ -116,7 +137,7 @@ const SOSButton: React.FC<SOSButtonProps> = ({ onActivate }) => {
           <Shield className="w-7 h-7" />
         )}
       </motion.button>
-      
+
       {isPressed && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}

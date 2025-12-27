@@ -31,6 +31,8 @@ interface Room {
   name: string;
   type: string; // Classroom, Lab, Sports Room
   available: boolean;
+  availabilityDetails?: string; // e.g. "Free until 2 PM" or "Occupied for Exam"
+  freeUntil?: any; // Firestore Timestamp
   isActive: boolean; // Soft Delete
 }
 
@@ -142,7 +144,11 @@ const ResourceAdminPage = () => {
       setFormData(item);
     } else {
       setEditingItem(null);
-      setFormData(activeTab === 'sports' ? { name: '', quantity: 0 } : { name: '', type: 'Classroom', available: true });
+      if (activeTab === 'sports') {
+        setFormData({ name: '', quantity: 0 });
+      } else {
+        setFormData({ name: '', type: 'Classroom', available: true, availabilityDetails: '' });
+      }
     }
     setIsDialogOpen(true);
   }
@@ -226,13 +232,11 @@ const ResourceAdminPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                      onClick={async () => {
-                        await updateDoc(doc(db, 'rooms', room.id), { available: !room.available });
-                        logActivity(room.id, room.name, 'update', user?.id || 'admin', user?.name || 'Admin', `Toggled availability to ${!room.available}`);
-                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors flex flex-col items-center ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                      onClick={() => openModal(room)}
                     >
-                      {room.available ? 'Free' : 'Occupied'}
+                      <span>{room.available ? 'Free' : 'Occupied'}</span>
+                      {room.availabilityDetails && <span className="text-[9px] opacity-80">{room.availabilityDetails}</span>}
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => openModal(room)}><Pencil className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => softDelete(room.id, room.isActive ?? true, room.name)}><Archive className="w-4 h-4" /></Button>
@@ -290,6 +294,19 @@ const ResourceAdminPage = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Type</label>
                 <Input value={formData.type || ''} onChange={e => setFormData({ ...formData, type: e.target.value })} placeholder="Classroom, Lab..." required />
+              </div>
+            )}
+
+            {activeTab === 'rooms' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Free Until (Time) <span className="text-red-500">*</span></label>
+                <Input
+                  type="time"
+                  value={formData.availabilityDetails || ''}
+                  onChange={e => setFormData({ ...formData, availabilityDetails: e.target.value })}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Select the time until which proper availability is guaranteed.</p>
               </div>
             )}
 

@@ -1,298 +1,186 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import { Trash2, Plus, Bus, Phone, Clock, MapPin, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { Bus, Plus, Pencil, Trash2, MapPin, Phone, User, ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
-export interface TransportRoute {
+interface BusRoute {
     id: string;
     routeNumber: string;
-    busName: string; // e.g., "Miyapur Express"
-    trackingUrl: string; // The Fleetx link
     driverName: string;
-    driverContact: string;
-    status: 'active' | 'maintenance' | 'inactive';
-    frequency?: string; // e.g., "7:30 AM, 5:00 PM"
+    driverPhone: string;
+    startTime: string;
+    stops: string[]; // Array of strings
+    liveLink?: string; // Optional custom tracking link
+    status: 'active' | 'inactive';
 }
 
 const TransportAdminPage = () => {
-    const [routes, setRoutes] = useState<TransportRoute[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
+    const [routes, setRoutes] = useState<BusRoute[]>([]);
+    const [isAdding, setIsAdding] = useState(false);
 
     // Form State
-    const [formData, setFormData] = useState<Omit<TransportRoute, 'id'>>({
+    const [newRoute, setNewRoute] = useState({
         routeNumber: '',
-        busName: '',
-        trackingUrl: '',
         driverName: '',
-        driverContact: '',
-        status: 'active',
-        frequency: ''
+        driverPhone: '',
+        startTime: '07:30 AM',
+        stopsString: '', // To parse into array
+        liveLink: ''
     });
 
     useEffect(() => {
-        const q = query(collection(db, 'transport_routes'), orderBy('routeNumber'));
+        const q = query(collection(db, 'bus_routes'), orderBy('routeNumber'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedRoutes = snapshot.docs.map(doc => ({
+            const data = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            })) as TransportRoute[];
-            setRoutes(fetchedRoutes);
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error fetching routes:", error);
-            toast.error("Failed to load transport routes");
-            setIsLoading(false);
+            })) as BusRoute[];
+            setRoutes(data);
         });
-
         return () => unsubscribe();
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddRoute = async () => {
+        if (!newRoute.routeNumber || !newRoute.driverName) {
+            toast.error("Please fill required fields");
+            return;
+        }
+
         try {
-            if (editingRoute) {
-                await updateDoc(doc(db, 'transport_routes', editingRoute.id), formData);
-                toast.success('Route updated successfully');
-            } else {
-                await addDoc(collection(db, 'transport_routes'), formData);
-                toast.success('New route added successfully');
-            }
-            setIsDialogOpen(false);
-            resetForm();
+            await addDoc(collection(db, 'bus_routes'), {
+                routeNumber: newRoute.routeNumber,
+                driverName: newRoute.driverName,
+                driverPhone: newRoute.driverPhone,
+                startTime: newRoute.startTime,
+                stops: newRoute.stopsString.split(',').map(s => s.trim()).filter(s => s.length > 0),
+                liveLink: newRoute.liveLink || '',
+                status: 'active',
+                createdAt: new Date().toISOString()
+            });
+            toast.success("Route added successfully");
+            setIsAdding(false);
+            setNewRoute({ routeNumber: '', driverName: '', driverPhone: '', startTime: '07:30 AM', stopsString: '', liveLink: '' });
         } catch (error) {
-            console.error("Error saving route:", error);
-            toast.error('Failed to save route');
+            console.error("Error adding route:", error);
+            toast.error("Failed to add route");
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this route?')) {
-            try {
-                await deleteDoc(doc(db, 'transport_routes', id));
-                toast.success('Route deleted successfully');
-            } catch (error) {
-                toast.error('Failed to delete route');
-            }
+        if (confirm("Are you sure you want to delete this route?")) {
+            await deleteDoc(doc(db, 'bus_routes', id));
+            toast.success("Route deleted");
         }
     };
 
-    const resetForm = () => {
-        setFormData({
-            routeNumber: '',
-            busName: '',
-            trackingUrl: '',
-            driverName: '',
-            driverContact: '',
-            status: 'active',
-            frequency: ''
-        });
-        setEditingRoute(null);
-    };
-
-    const openEditDialog = (route: TransportRoute) => {
-        setEditingRoute(route);
-        setFormData({
-            routeNumber: route.routeNumber,
-            busName: route.busName,
-            trackingUrl: route.trackingUrl,
-            driverName: route.driverName,
-            driverContact: route.driverContact,
-            status: route.status,
-            frequency: route.frequency || ''
-        });
-        setIsDialogOpen(true);
-    };
-
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Bus className="w-8 h-8 text-primary" />
-                        Transport Management
-                    </h1>
-                    <p className="text-muted-foreground">Manage college bus routes, drivers, and live tracking links.</p>
+        <div className="flex flex-col h-full bg-background fade-in">
+            {/* Header */}
+            <header className="sticky top-0 z-30 px-6 py-4 glass-panel-heavy border-b bg-background/80 backdrop-blur-md flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Link to="/admin/dashboard" className="p-2 -ml-2 rounded-xl hover:bg-muted/50 transition-colors">
+                        <ArrowLeft className="w-6 h-6 text-foreground" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">Transport Management</h1>
+                        <p className="text-sm text-muted-foreground">College bus routes & tracking</p>
+                    </div>
                 </div>
-                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gap-2">
-                    <Plus className="w-4 h-4" /> Add New Route
-                </Button>
-            </div>
+                <div className="flex gap-2">
+                    <Button onClick={() => setIsAdding(!isAdding)} className="gap-2">
+                        {isAdding ? 'Cancel' : <><Plus className="w-4 h-4" /> Add Route</>}
+                    </Button>
+                </div>
+            </header>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                        <DialogTitle>{editingRoute ? 'Edit Route' : 'Add New Route'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Route Number</label>
-                                <Input
-                                    placeholder="e.g. 15"
-                                    value={formData.routeNumber}
-                                    onChange={(e) => setFormData({ ...formData, routeNumber: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Bus Name/Route</label>
-                                <Input
-                                    placeholder="e.g. Miyapur Express"
-                                    value={formData.busName}
-                                    onChange={(e) => setFormData({ ...formData, busName: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Tracking URL (Fleetx)</label>
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="https://tinyurl.com/..."
-                                    value={formData.trackingUrl}
-                                    onChange={(e) => setFormData({ ...formData, trackingUrl: e.target.value })}
-                                />
-                                {formData.trackingUrl && (
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => window.open(formData.trackingUrl, '_blank')}>
-                                        <ExternalLink className="w-4 h-4" />
-                                    </Button>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">Paste the shareable link from Fleetx.</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Driver Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        className="pl-9"
-                                        placeholder="Driver Name"
-                                        value={formData.driverName}
-                                        onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Driver Contact</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        className="pl-9"
-                                        placeholder="Phone Number"
-                                        value={formData.driverContact}
-                                        onChange={(e) => setFormData({ ...formData, driverContact: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Frequency / Timings</label>
-                            <Input
-                                placeholder="e.g. 7:30 AM (Campus), 5:00 PM (Return)"
-                                value={formData.frequency}
-                                onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+            {/* Content */}
+            <div className="flex-1 px-6 pb-24 max-w-5xl mx-auto w-full">
+                {isAdding && (
+                    <div className="bg-card border border-border p-6 rounded-2xl shadow-sm mb-6 animate-in slide-in-from-top-4">
+                        <h2 className="font-bold text-lg mb-4">Add New Route</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input
+                                placeholder="Route Number (e.g. 15)"
+                                className="p-3 border rounded-xl bg-background"
+                                value={newRoute.routeNumber}
+                                onChange={e => setNewRoute({ ...newRoute, routeNumber: e.target.value })}
                             />
+                            <input
+                                placeholder="Driver Name"
+                                className="p-3 border rounded-xl bg-background"
+                                value={newRoute.driverName}
+                                onChange={e => setNewRoute({ ...newRoute, driverName: e.target.value })}
+                            />
+                            <input
+                                placeholder="Driver Phone"
+                                className="p-3 border rounded-xl bg-background"
+                                value={newRoute.driverPhone}
+                                onChange={e => setNewRoute({ ...newRoute, driverPhone: e.target.value })}
+                            />
+                            <input
+                                placeholder="Start Time (07:30 AM)"
+                                className="p-3 border rounded-xl bg-background"
+                                value={newRoute.startTime}
+                                onChange={e => setNewRoute({ ...newRoute, startTime: e.target.value })}
+                            />
+                            <div className="md:col-span-2">
+                                <input
+                                    placeholder="Live Tracking Link (Optional - overrides default map)"
+                                    className="w-full p-3 border rounded-xl bg-background mb-4"
+                                    value={newRoute.liveLink || ''}
+                                    onChange={e => setNewRoute({ ...newRoute, liveLink: e.target.value })}
+                                />
+                                <textarea
+                                    placeholder="Stops (comma separated, e.g. KPHB, JNTU, Miyapur)"
+                                    className="w-full p-3 border rounded-xl bg-background h-24"
+                                    value={newRoute.stopsString}
+                                    onChange={e => setNewRoute({ ...newRoute, stopsString: e.target.value })}
+                                />
+                            </div>
                         </div>
+                        <Button onClick={handleAddRoute} className="w-full">Save Route</Button>
+                    </div>
+                )}
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Status</label>
-                            <select
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                value={formData.status}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                <div className="grid gap-4">
+                    {routes.map(route => (
+                        <div key={route.id} className="bg-card border border-border p-5 rounded-2xl flex flex-col md:flex-row justify-between gap-4 items-start md:items-center group">
+                            <div className="flex gap-4 items-center">
+                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                                    <Bus className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                        Route {route.routeNumber}
+                                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-normal">
+                                            {route.stops?.length || 0} stops
+                                        </span>
+                                    </h3>
+                                    <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                                        <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {route.driverName} ({route.driverPhone})</span>
+                                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {route.startTime}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => handleDelete(route.id)}
                             >
-                                <option value="active">Active</option>
-                                <option value="maintenance">Maintenance</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                                <Trash2 className="w-5 h-5" />
+                            </Button>
                         </div>
-
-                        <div className="flex justify-end gap-3 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingRoute ? 'Update Route' : 'Create Route'}</Button>
+                    ))}
+                    {routes.length === 0 && !isAdding && (
+                        <div className="text-center py-20 text-muted-foreground">
+                            No routes found. Click "Add Route" to create Route 15.
                         </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Route</TableHead>
-                            <TableHead>Driver Info</TableHead>
-                            <TableHead>Tracking</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8">Loading routes...</TableCell>
-                            </TableRow>
-                        ) : routes.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No routes found. Create one to get started.</TableCell>
-                            </TableRow>
-                        ) : (
-                            routes.map((route) => (
-                                <TableRow key={route.id}>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-lg">#{route.routeNumber}</span>
-                                            <span className="text-muted-foreground text-sm">{route.busName}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col text-sm">
-                                            <span className="flex items-center gap-1"><User className="w-3 h-3" /> {route.driverName || 'N/A'}</span>
-                                            <span className="flex items-center gap-1 text-muted-foreground"><Phone className="w-3 h-3" /> {route.driverContact || 'N/A'}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {route.trackingUrl ? (
-                                            <a href={route.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
-                                                <MapPin className="w-3 h-3" /> View Map
-                                            </a>
-                                        ) : (
-                                            <span className="text-muted-foreground text-xs italic">No URL set</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={route.status === 'active' ? 'default' : route.status === 'maintenance' ? 'secondary' : 'destructive'}>
-                                            {route.status.toUpperCase()}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(route)}>
-                                                <Pencil className="w-4 h-4 text-primary" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(route.id)}>
-                                                <Trash2 className="w-4 h-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -26,40 +26,67 @@ const MOCK_ROUTE: TransportRoute = {
     estimatedTime: "45-60 mins"
 };
 
+import { GET_STATIC_ROUTE } from "./hydBusData";
+
+import { toast } from 'sonner';
+
 export const getPublicTransportRoute = async (destination: string): Promise<TransportRoute> => {
-    // 1. Direct Fallback if No Key
-    if (!API_KEY) {
-        console.warn("Gemini API Key missing. Using Mock Data.");
-        return new Promise((resolve) => setTimeout(() => resolve(MOCK_ROUTE), 1000));
+    // 1. Check for API Key FIRST
+    if (API_KEY) {
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+            const prompt = `
+            I am at KLH University, Bowrampet (Hyderabad). I need to go to ${destination} using public transport (RTC bus).
+            
+            You are an expert on Hyderabad TSRTC bus routes and timings. Use accurate knowledge from datasets like 'hyd-bus-data' to suggest real, existing bus numbers (e.g., 222A, 219, 29B) and routes.
+            
+            Provide a JSON response with:
+            - busNumbers: Array of string (e.g. ["219", "222A"])
+            - estimatedTime: String (e.g. "45 mins")
+            - steps: Array of strings describing the route (walk to stop, take bus X, get down at Y).
+            
+            Return ONLY valid JSON.
+            `;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+
+            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            if (!cleanText) {
+                throw new Error("Empty response from AI");
+            }
+
+            return JSON.parse(cleanText) as TransportRoute;
+
+        } catch (error: any) {
+            console.error("Gemini API Error:", error);
+            // CRITICAL: Tell the user WHY it failed instead of showing fake data
+            toast.error(`AI Search Failed: ${error.message || "Unknown error"}. Showing estimated data instead.`);
+            // Fall through to static check below
+        }
+    } else {
+        console.warn("No API Key found. Skipping AI generation.");
     }
 
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const prompt = `I am at KLH University Bowrampet (Hyderabad). I need to go to ${destination} using public transport (RTC bus/Metro). 
-    Provide a structured travel plan used by students.
-    Return STRICTLY a JSON object with this schema:
-    {
-      "busNumbers": ["list", "of", "bus/metro", "numbers"],
-      "frequency": "estimated frequency string",
-      "steps": ["step 1", "step 2", "detailed instructions"],
-      "estimatedTime": "estimated duration string"
+    // 2. Fallback to Local Static Data (GitHub Repo Data)
+    const staticMatch = GET_STATIC_ROUTE(destination);
+    if (staticMatch) {
+        return new Promise((resolve) => setTimeout(() => resolve(staticMatch), 600));
     }
-    Do not add markdown formatting or backticks. Just the raw JSON string.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-
-        // Clean up if model returns markdown code blocks
-        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        return JSON.parse(cleanText) as TransportRoute;
-
-    } catch (error) {
-        console.error("Gemini API Error (Falling back to Mock):", error);
-        // 2. Safe Fallback on API Error
-        // This ensures the user always sees a result, even if their key is invalid or quota exceeded.
-        return MOCK_ROUTE;
-    }
+    // 3. Final Fallback (Generic Mock) - ONLY if static missing and AI failed
+    // We update this mock to be less specific so it doesn't look like a wrong answer for "Wonderla"
+    return {
+        busNumbers: ["219", "SPL"],
+        frequency: "Every 30 mins",
+        estimatedTime: "1 hr + (Est)",
+        steps: [
+            "Route data unavailable for this specific location.",
+            "Take Bus 219 to Patancheru / Secunderabad.",
+            "Ask local conductor for connecting bus to " + destination
+        ]
+    };
 };
