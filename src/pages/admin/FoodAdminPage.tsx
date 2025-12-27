@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,7 +40,23 @@ const FoodAdminPage: React.FC = () => {
     available: true,
   });
 
-  // ... useEffect for fetching items ...
+  useEffect(() => {
+    if (!db) return;
+
+    const q = query(collection(db, 'food_items'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as MenuItem[];
+      setMenuItems(items);
+    }, (error) => {
+      console.error("Error fetching menu items:", error);
+      toast.error("Failed to load menu items");
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
