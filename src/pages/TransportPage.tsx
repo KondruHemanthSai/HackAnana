@@ -1,179 +1,235 @@
 import React, { useState } from 'react';
+import { ArrowLeft, Bus, Train, Navigation, Clock, MapPin, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { getPublicTransportRoute, TransportRoute } from '@/lib/gemini';
+import { toast } from 'sonner';
 
 const TransportPage = () => {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'college' | 'public'>('college');
+  const [mode, setMode] = useState<'selection' | 'college' | 'public'>('selection');
 
-  return (
-    <div className="flex flex-col h-full fade-in">
-      {/* Header */}
-      <header className="sticky top-0 z-30 px-5 pt-6 pb-2 transition-all duration-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[28px]">location_on</span>
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Current Zone</span>
-              <span className="text-[#101419] text-sm font-bold leading-none">Main Gate</span>
-            </div>
+  // Public Transport State
+  const [destination, setDestination] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [routeData, setRouteData] = useState<TransportRoute | null>(null);
+
+  const handleGetRoute = async () => {
+    if (!destination.trim()) {
+      toast.error("Please enter a destination");
+      return;
+    }
+
+    setLoading(true);
+    setRouteData(null);
+    try {
+      const data = await getPublicTransportRoute(destination);
+      setRouteData(data);
+    } catch (error) {
+      toast.error("Failed to find route");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const SelectionView = () => (
+    <div className="flex flex-col gap-6 px-4 pt-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center mb-4"
+      >
+        <h1 className="text-3xl font-bold mb-2">Choose Transport</h1>
+        <p className="text-muted-foreground">Select your preferred mode of travel</p>
+      </motion.div>
+
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setMode('college')}
+        className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group"
+      >
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Bus size={120} />
+        </div>
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <Bus size={32} />
           </div>
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/40 border border-white/50 backdrop-blur-md shadow-sm hover:bg-white/60 transition-colors">
-            <span className="material-symbols-outlined text-primary">notifications</span>
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
-          </button>
+          <div className="text-left">
+            <h2 className="text-xl font-bold">College Transport</h2>
+            <p className="text-muted-foreground text-sm">Official shuttle service & routes</p>
+          </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold text-[#101419] tracking-tight">Campus Transit</h1>
-          <button className="text-primary text-sm font-bold hover:underline">View Map</button>
+      </motion.button>
+
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setMode('public')}
+        className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group"
+      >
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Train size={120} />
         </div>
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-600">
+            <Train size={32} />
+          </div>
+          <div className="text-left">
+            <h2 className="text-xl font-bold">Public Transport</h2>
+            <p className="text-muted-foreground text-sm">RTC buses & Metro guide</p>
+          </div>
+        </div>
+      </motion.button>
+    </div>
+  );
+
+  const CollegeView = () => (
+    <div className="flex flex-col h-full bg-background">
+      <header className="px-4 py-4 flex items-center gap-4 border-b border-border">
+        <button onClick={() => setMode('selection')} className="p-2 -ml-2 hover:bg-muted rounded-xl">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-bold">College Transport</h1>
       </header>
 
-      {/* Toggle Switch */}
-      <div className="px-4 py-3 sticky top-[100px] z-20">
-        <div className="glass-panel rounded-full p-1.5 flex h-14 relative">
-          <button
-            onClick={() => setMode('college')}
-            className={`flex-1 relative z-10 h-full flex items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${mode === 'college'
-                ? 'text-primary bg-white/90 shadow-md'
-                : 'text-text-muted hover:text-primary'
-              }`}
-          >
-            <span className="material-symbols-outlined mr-2 text-[20px]">school</span>
-            College
-          </button>
-          <button
-            onClick={() => setMode('public')}
-            className={`flex-1 relative z-10 h-full flex items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${mode === 'public'
-                ? 'text-primary bg-white/90 shadow-md'
-                : 'text-text-muted hover:text-primary'
-              }`}
-          >
-            <span className="material-symbols-outlined mr-2 text-[20px]">directions_bus</span>
-            Public
-          </button>
+      <div className="p-4 space-y-4">
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-lg text-primary">Route 15 - College Bus</h3>
+            <p className="text-sm text-muted-foreground">Main Campus ↔ City Centre</p>
+          </div>
+          <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold animate-pulse">
+            LIVE
+          </div>
+        </div>
+
+        <div className="h-[70vh] w-full rounded-2xl overflow-hidden border border-border shadow-sm bg-muted relative">
+          <iframe
+            src="https://tinyurl.com/2p8rkuh9"
+            className="w-full h-full border-0"
+            title="Live Bus Tracking"
+          />
+          {/* Overlay header inside map area if needed, or just keep it clean */}
+          <div className="absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-border/50">
+            <p className="text-xs font-bold text-center text-primary uppercase tracking-wider">Live Bus Location</p>
+          </div>
         </div>
       </div>
+    </div>
+  );
 
-      {/* Status Meta */}
-      <div className="px-4 py-2 text-center">
-        <p className="inline-flex items-center justify-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur-sm border border-primary/10">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
-          </span>
-          3 Shuttles active nearby
-        </p>
-      </div>
+  const PublicView = () => (
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="px-4 py-4 flex items-center gap-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
+        <button onClick={() => setMode('selection')} className="p-2 -ml-2 hover:bg-muted rounded-xl">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-bold">Public Transport Guide</h1>
+      </header>
 
-      {/* Scrollable Content */}
-      <main className="flex flex-col gap-5 px-4 pt-2 pb-24">
-        {/* Active Route Card (Detailed) */}
-        <div className="glass-panel rounded-3xl p-0 overflow-hidden group">
-          {/* Header of Card */}
-          <div className="p-5 pb-0">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
-                  <span className="material-symbols-outlined text-2xl">directions_bus</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-[#101419] leading-tight">Dormitory Express</h3>
-                  <p className="text-text-muted text-sm font-medium">Route 4A • 85% Full</p>
+      <main className="p-4 flex flex-col gap-6 pb-24">
+        {/* Input Section */}
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex flex-col items-center gap-1 mt-1">
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <div className="w-0.5 h-8 bg-border border-l border-dashed" />
+              <div className="w-3 h-3 rounded-full bg-orange-500" />
+            </div>
+            <div className="flex-1 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase">From</label>
+                <div className="p-3 bg-muted rounded-xl text-sm font-medium">
+                  KLH University, Bowrampet
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xl font-bold text-primary">4 min</span>
-                <span className="text-xs font-semibold text-text-muted">Arriving</span>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase">To Location</label>
+                <input
+                  type="text"
+                  placeholder="Enter destination (e.g. Miyapur Metro)"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full p-3 bg-background border border-border rounded-xl text-sm outline-none focus:ring-2 ring-orange-500/20"
+                />
               </div>
             </div>
           </div>
 
-          {/* Soft Roadmap Timeline */}
-          <div className="relative px-5 py-6">
-            {/* Vertical Line */}
-            <div className="absolute left-[38px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-primary/20 via-primary/50 to-primary/20"></div>
-
-            {/* Stops */}
-            <div className="flex flex-col gap-6 relative">
-              {/* Stop 1 */}
-              <div className="flex items-center gap-4">
-                <div className="z-10 flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-white ring-4 ring-primary/20">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-                </div>
-                <div className="flex flex-1 justify-between items-center">
-                  <p className="text-sm font-bold text-[#101419]">Main Gate</p>
-                  <span className="text-xs font-medium text-text-muted">Now</span>
-                </div>
-              </div>
-
-              {/* Stop 2 */}
-              <div className="flex items-center gap-4">
-                <div className="z-10 flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-white ring-4 ring-secondary/20">
-                  <div className="h-1.5 w-1.5 rounded-full bg-secondary"></div>
-                </div>
-                <div className="flex flex-1 justify-between items-center">
-                  <p className="text-sm font-medium text-slate-600">Library Circle</p>
-                  <span className="text-xs font-medium text-text-muted">+2m</span>
-                </div>
-              </div>
-
-              {/* Stop 3 */}
-              <div className="flex items-center gap-4 opacity-60">
-                <div className="z-10 flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-slate-200">
-                  <div className="h-1.5 w-1.5 rounded-full bg-slate-300"></div>
-                </div>
-                <div className="flex flex-1 justify-between items-center">
-                  <p className="text-sm font-medium text-slate-600">Dorms A-C</p>
-                  <span className="text-xs font-medium text-text-muted">+6m</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Visual Map Preview Footer */}
-          <div className="relative h-28 w-full bg-slate-100">
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-80"
-              style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=300&h=100")' }}
-            ></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-white/90 to-transparent"></div>
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-              <button className="flex-1 bg-primary hover:bg-primary/90 text-white text-sm font-bold py-2.5 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all active:scale-95">
-                <span className="material-symbols-outlined text-[18px]">near_me</span>
-                Track Live
-              </button>
-            </div>
-          </div>
+          <Button
+            onClick={handleGetRoute}
+            disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold h-12 rounded-xl"
+          >
+            {loading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Navigation className="w-5 h-5 mr-2" />}
+            {loading ? 'Finding Route...' : 'Find RTC Route'}
+          </Button>
         </div>
 
-        {/* Secondary Route Card (Collapsed) */}
-        <div className="glass-panel rounded-2xl p-4 flex items-center justify-between transition-transform active:scale-[0.99] cursor-pointer hover:bg-white/50">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-secondary border border-secondary/20">
-              <span className="material-symbols-outlined">science</span>
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-[#101419]">Science Block Loop</h3>
-              <p className="text-text-muted text-xs font-medium">Arriving in 12 min</p>
-            </div>
-          </div>
-          <span className="material-symbols-outlined text-slate-400">chevron_right</span>
-        </div>
+        {/* Results Section */}
+        <AnimatePresence>
+          {routeData && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex gap-4">
+                <div className="flex-1 bg-blue-50 border border-blue-100 p-4 rounded-2xl">
+                  <p className="text-xs text-blue-600 font-bold uppercase mb-1">Bus Numbers</p>
+                  <div className="flex flex-wrap gap-2">
+                    {routeData.busNumbers.map((bus, i) => (
+                      <span key={i} className="bg-blue-600 text-white text-sm font-bold px-2 py-1 rounded-md">{bus}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 bg-orange-50 border border-orange-100 p-4 rounded-2xl">
+                  <p className="text-xs text-orange-600 font-bold uppercase mb-1">Est. Time</p>
+                  <div className="flex items-center gap-2 text-orange-900 font-bold">
+                    <Clock className="w-4 h-4" />
+                    {routeData.estimatedTime}
+                  </div>
+                </div>
+              </div>
 
-        {/* Public Transport Preview Card */}
-        <div className="glass-panel rounded-2xl p-4 flex items-center justify-between transition-transform active:scale-[0.99] cursor-pointer hover:bg-white/50 opacity-80">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 border border-indigo-200">
-              <span className="material-symbols-outlined">train</span>
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-[#101419]">Metro Blue Line</h3>
-              <p className="text-text-muted text-xs font-medium">Station Connector • Delayed</p>
-            </div>
-          </div>
-          <span className="material-symbols-outlined text-slate-400">chevron_right</span>
-        </div>
+              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                <h3 className="font-bold mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  Route Roadmap
+                </h3>
+                <div className="space-y-6 relative pl-2">
+                  <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-muted" />
+                  {routeData.steps.map((step, i) => (
+                    <div key={i} className="flex gap-4 relative">
+                      <div className="w-5 h-5 rounded-full bg-background border-4 border-primary z-10 shrink-0" />
+                      <p className="text-sm text-foreground/80 leading-snug">{step}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl border-border hover:bg-muted"
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=KLH+University+Bowrampet&destination=${encodeURIComponent(destination)}&travelmode=transit`, '_blank')}
+              >
+                Open full route in Google Maps
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      {mode === 'selection' && <SelectionView />}
+      {mode === 'college' && <CollegeView />}
+      {mode === 'public' && <PublicView />}
     </div>
   );
 };

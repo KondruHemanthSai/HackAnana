@@ -204,23 +204,28 @@ const EventsAdminPage: React.FC = () => {
         if (!registrations.length) return;
 
         const headers = ['Name', 'Email', 'Status', 'Registered At', 'Attended At'];
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + [headers.join(','), ...registrations.map(r => [
-                r.userName,
-                r.userEmail,
+        const csvRows = [headers.join(',')];
+
+        registrations.forEach(r => {
+            const row = [
+                `"${r.userName || ''}"`,
+                `"${r.userEmail || ''}"`,
                 r.status,
                 r.registeredAt,
                 r.attendedAt || ''
-            ].join(','))].join('\n');
+            ];
+            csvRows.push(row.join(','));
+        });
 
-        const encodedUri = encodeURI(csvContent);
+        const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n'));
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `participants_${viewingParticipants?.title}.csv`);
+        link.setAttribute("href", csvContent);
+        link.setAttribute("download", `participants_${viewingParticipants?.title || 'event'}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
+
 
     const [participantSearch, setParticipantSearch] = useState('');
 

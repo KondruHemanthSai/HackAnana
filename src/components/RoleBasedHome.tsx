@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import HomePage from '@/pages/HomePage';
+import AppLayout from '@/components/AppLayout';
 
 const RoleBasedHome: React.FC = () => {
     const { user, isLoading } = useAuth();
@@ -21,7 +22,11 @@ const RoleBasedHome: React.FC = () => {
             return <Navigate to="/admin/events" replace />;
         case 'student':
         default:
-            return <HomePage />;
+            return (
+                <AppLayout>
+                    <HomePage />
+                </AppLayout>
+            );
     }
 };
 
