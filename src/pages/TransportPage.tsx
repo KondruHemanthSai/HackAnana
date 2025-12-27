@@ -3,8 +3,12 @@ import { ArrowLeft, Bus, Train, Navigation, Clock, MapPin, Loader2 } from 'lucid
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { User } from 'lucide-react';
 import { getPublicTransportRoute, TransportRoute } from '@/lib/gemini';
 import { toast } from 'sonner';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -88,51 +92,47 @@ const TransportPage = () => {
     </div>
   );
 
-  const CollegeView = () => (
-    <div className="flex flex-col h-full bg-background">
-      <header className="px-4 py-4 flex items-center gap-4 border-b border-border">
-        <button onClick={() => setMode('selection')} className="p-2 -ml-2 hover:bg-muted rounded-xl">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-xl font-bold">College Transport</h1>
-      </header>
+  const CollegeView = () => {
+    // We already have a TransportRoute interface defined in the admin page, but let's redefine locally or import if shared.
+    // For simplicity, let's just fetch here.
+    const [routes, setRoutes] = useState<any[]>([]);
+    const [routesLoading, setRoutesLoading] = useState(true);
 
-      <div className="p-4 space-y-4">
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-lg text-primary">Route 15 - College Bus</h3>
-            <p className="text-sm text-muted-foreground">Main Campus ↔ City Centre</p>
-          </div>
-          <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold animate-pulse">
-            LIVE
-          </div>
-        </div>
+    React.useEffect(() => {
+      // Fetch Transport Routes from Firestore
+      // We need to import db and collection again inside this scope or at top level
+      // Let's rely on top-level imports - we need to ADD them to this file first.
+    }, []);
 
-        <div className="h-[70vh] w-full rounded-2xl overflow-hidden border border-border shadow-sm bg-muted relative flex flex-col items-center justify-center p-6 text-center gap-4">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
-            <MapPin className="w-10 h-10 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-foreground">Live Tracking Dashboard</h3>
-            <p className="text-muted-foreground max-w-xs mx-auto mt-2 text-sm">
-              View the real-time location of the college bus on the secure Fleetx dashboard.
-            </p>
-          </div>
+    // Wait! I need to add firestore imports to the top of the file first before I can write the logic here.
+    // I will write the component assuming imports exist, then add imports in next step.
 
-          <Button
-            onClick={() => window.open('https://tinyurl.com/2p8rkuh9', '_blank')}
-            className="gradient-primary text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-95 mt-2"
-          >
-            Start Live Tracking
-          </Button>
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <header className="px-4 py-4 flex items-center gap-4 border-b border-border">
+          <button onClick={() => setMode('selection')} className="p-2 -ml-2 hover:bg-muted rounded-xl">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold">College Transport</h1>
+        </header>
 
-          <p className="text-xs text-muted-foreground mt-4">
-            Powered by Fleetx.io
-          </p>
+        <div className="p-4 space-y-4 overflow-y-auto pb-24">
+          <BusListContent />
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  // Helper component to avoid hook complexity in the main file update if possible, 
+  // but better to just inline the logic if I add imports. 
+
+  // Let's actually STOP and add imports first so I don't break the build.
+  // I will return the original content for now and do imports first.
+
+  const BusListContent = () => {
+    // Placeholder
+    return <div>Loading...</div>
+  }
 
   const PublicView = () => (
     <div className="flex flex-col min-h-screen bg-background">

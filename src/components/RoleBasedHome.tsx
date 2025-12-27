@@ -20,6 +20,8 @@ const RoleBasedHome: React.FC = () => {
             return <Navigate to="/admin/resources" replace />;
         case 'event_admin':
             return <Navigate to="/admin/events" replace />;
+        case 'transport_admin':
+            return <Navigate to="/admin/transport" replace />;
         case 'student':
         default:
             return (

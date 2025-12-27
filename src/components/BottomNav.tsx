@@ -7,7 +7,7 @@ const BottomNav = () => {
   const { user } = useAuth();
 
   // Explicitly hide if admin, just in case
-  if (user?.role === 'super_admin' || user?.role === 'food_admin' || user?.role === 'resource_admin' || user?.role === 'event_admin') {
+  if (user?.role === 'super_admin' || user?.role === 'food_admin' || user?.role === 'resource_admin' || user?.role === 'event_admin' || user?.role === 'transport_admin') {
     return null;
   }
 

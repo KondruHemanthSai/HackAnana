@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Users, ShieldCheck, Search, UserCog,
   X, Check, Crown, UtensilsCrossed, Building2, GraduationCap,
-  MoreVertical, Mail
+  MoreVertical, Mail, Bus, Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,8 @@ const roleConfig: Record<UserRole, { label: string; icon: React.ElementType; col
   student: { label: 'Student', icon: GraduationCap, color: 'text-blue-400', bgColor: 'bg-blue-400/20' },
   food_admin: { label: 'Food Admin', icon: UtensilsCrossed, color: 'text-success', bgColor: 'bg-success/20' },
   resource_admin: { label: 'Resource Admin', icon: Building2, color: 'text-purple-400', bgColor: 'bg-purple-400/20' },
+  event_admin: { label: 'Event Admin', icon: Calendar, color: 'text-pink-400', bgColor: 'bg-pink-400/20' },
+  transport_admin: { label: 'Transport Admin', icon: Bus, color: 'text-orange-400', bgColor: 'bg-orange-400/20' },
   super_admin: { label: 'Super Admin', icon: Crown, color: 'text-warning', bgColor: 'bg-warning/20' },
 };
 
@@ -355,6 +357,8 @@ const SuperAdminPage: React.FC = () => {
                           {role === 'student' && 'Access to student features only'}
                           {role === 'food_admin' && 'Manage canteen menu & orders'}
                           {role === 'resource_admin' && 'Manage rooms & equipment'}
+                          {role === 'event_admin' && 'Manage events & registrations'}
+                          {role === 'transport_admin' && 'Manage bus routes & tracking'}
                           {role === 'super_admin' && 'Full control over all modules'}
                         </p>
                       </div>
