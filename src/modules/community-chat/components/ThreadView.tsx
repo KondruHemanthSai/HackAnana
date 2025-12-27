@@ -89,7 +89,7 @@ const ThreadView = () => {
 
             {/* Input */}
             {!isExpired && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-[100] pb-6">
                     <form onSubmit={handleReply} className="flex gap-2 items-end max-w-md mx-auto">
                         <textarea
                             value={replyText}
