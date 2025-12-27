@@ -71,39 +71,48 @@ const HomePage = () => {
   const triggerSOSActions = () => {
     console.log("SOS ACTIONS TRIGGERED");
 
-    // 1. Get Location
+    // Helper to launch WhatsApp
+    const launchWhatsApp = (latitude?: number, longitude?: number) => {
+      if (emergencyContacts.length > 0) {
+        const contact = emergencyContacts[0];
+        const locString = latitude && longitude ? `Location: https://www.google.com/maps?q=${latitude},${longitude}` : 'Location: Unavailable';
+        const message = `HELP! I am in danger. ${locString}`;
+        const phone = contact.phone.replace(/\D/g, '');
+        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+        // Try open
+        window.open(waUrl, '_blank');
+      } else {
+        toast.error("No emergency contacts for WhatsApp!");
+      }
+    };
+
+    // Helper to make Call
+    const makeCall = () => {
+      setTimeout(() => {
+        window.location.href = "tel:7075933919";
+      }, 1000); // 1s delay to allow WhatsApp request to register
+    };
+
+    // Execute
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-
-        // 2. Call Police/Security
-        window.location.href = "tel:7075933919";
-
-        // 3. Send Email
-        // (Using existing logic or enhanced)
-
-        // 4. WhatsApp Message to First Contact
-        if (emergencyContacts.length > 0) {
-          const contact = emergencyContacts[0];
-          const message = `HELP! I am in danger. Location: ${mapsLink}`;
-          // Remove non-digit chars from phone
-          const phone = contact.phone.replace(/\D/g, '');
-          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-
-          // Open in new tab or specific window logic
-          window.open(waUrl, '_blank');
-        } else {
-          toast.error("No emergency contacts for WhatsApp alert! (Add in Settings)");
-        }
-
-      }, (error) => {
-        console.error("Location error", error);
-        // Fallback without location
-        window.location.href = "tel:7075933919";
-      });
+      toast.info("Acquiring location for SOS...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          launchWhatsApp(latitude, longitude);
+          makeCall();
+        },
+        (error) => {
+          console.error("Location error", error);
+          launchWhatsApp(); // Send without location
+          makeCall();
+        },
+        { timeout: 5000 } // Don't wait too long
+      );
     } else {
-      window.location.href = "tel:7075933919";
+      launchWhatsApp();
+      makeCall();
     }
   };
 

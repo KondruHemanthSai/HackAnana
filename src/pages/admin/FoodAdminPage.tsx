@@ -58,10 +58,12 @@ const FoodAdminPage: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const filteredItems = menuItems.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = menuItems.filter(item => {
+    const query = searchQuery.toLowerCase();
+    const nameMatch = item.name?.toLowerCase().includes(query) || false;
+    const catMatch = item.category?.toLowerCase().includes(query) || false;
+    return nameMatch || catMatch;
+  });
 
   const handleOpenForm = (item?: MenuItem) => {
     if (item) {
@@ -284,6 +286,9 @@ const FoodAdminPage: React.FC = () => {
         {filteredItems.length === 0 && (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No menu items found</p>
+            {menuItems.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">Database returned 0 items. Check your connection.</p>
+            )}
           </div>
         )}
       </div>
