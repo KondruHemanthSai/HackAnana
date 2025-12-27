@@ -158,16 +158,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
     });
 
-    // Check for redirect result (Android/Mobile flow)
-    getRedirectResult(auth).then((result) => {
-      if (result) {
-        toast.success("Welcome back! Signed in via redirect.");
-      }
-    }).catch((error) => {
-      console.error("Redirect Login Error:", error);
-      toast.error(`Login failed: ${error.code} - ${error.message}`);
-    });
-
     return () => unsubscribe();
   }, []);
 
@@ -193,12 +183,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       setIsLoading(true);
-      // Use Redirect for reliable mobile auth
-      await signInWithRedirect(auth, googleProvider);
-      // Note: The promise resolves when redirect starts, not when login finishes.
+      // Revert to Popup: Persistence fix should resolve previous stability issues
+      await signInWithPopup(auth, googleProvider);
+      toast.success('Signed in successfully!');
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(`Start Login Failed: ${error.code}`);
+      toast.error(`Login Failed: ${error.code} - ${error.message}`);
       setIsLoading(false);
     }
   };
