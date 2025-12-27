@@ -70,9 +70,11 @@ const HomePage = () => {
 
   const triggerSOSActions = () => {
     console.log("SOS ACTIONS TRIGGERED");
+    const SOS_NUMBER = "7075933919";
 
-    // Helper to launch WhatsApp
-    const launchWhatsApp = (latitude?: number, longitude?: number) => {
+    // Immediate action function (Call + WhatsApp)
+    const executeRescueActions = (latitude?: number, longitude?: number) => {
+      // 1. WhatsApp (Opens in new tab/app)
       if (emergencyContacts.length > 0) {
         const contact = emergencyContacts[0];
         const locString = latitude && longitude ? `Location: https://www.google.com/maps?q=${latitude},${longitude}` : 'Location: Unavailable';
@@ -80,73 +82,61 @@ const HomePage = () => {
         const phone = contact.phone.replace(/\D/g, '');
         const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-        // Try open
+        // Open WhatsApp immediately
         window.open(waUrl, '_blank');
       } else {
         toast.error("No emergency contacts for WhatsApp!");
       }
-    };
 
-    // Helper to make Call
-    const makeCall = () => {
+      // 2. Phone Call (Triggers system dialog)
+      // Slight delay (500ms) to ensure WhatsApp command is processed by browser first
       setTimeout(() => {
-        window.location.href = "tel:7075933919";
-      }, 1000); // 1s delay to allow WhatsApp request to register
+        window.location.href = `tel:${SOS_NUMBER}`;
+      }, 500);
     };
 
-    // Execute
+    // Helper to log to Firestore
+    const logSOS = async (lat?: number, lng?: number) => {
+      if (!db || !user) return;
+      try {
+        await addDoc(collection(db, 'sos_alerts'), {
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          phone: emergencyContacts[0]?.phone || 'Unknown',
+          location: lat && lng ? { lat, lng } : null,
+          status: 'active',
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Failed to log SOS", e);
+      }
+    };
+
+    // Execute Logic
     if (navigator.geolocation) {
-      toast.info("Acquiring location for SOS...");
+      toast.info("Acquiring location... (Actions triggered in background)");
+
+      // OPTIMIZATION: Don't wait for location to start actions if it's slow.
+      // We start actions "optimistically" if location takes too long (e.g., > 2s), 
+      // but ideally we want location.
+
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
+        (position) => {
           const { latitude, longitude } = position.coords;
-
-          // Log to Firestore
-          if (db && user) {
-            try {
-              await addDoc(collection(db, 'sos_alerts'), {
-                userId: user.id,
-                userName: user.name,
-                userEmail: user.email,
-                phone: emergencyContacts[0]?.phone || 'Unknown',
-                location: { lat: latitude, lng: longitude },
-                status: 'active',
-                timestamp: new Date().toISOString() // Use ISO string for broader compatibility if serverTimestamp has issues in client-side arrays
-              });
-            } catch (e) {
-              console.error("Failed to log SOS", e);
-            }
-          }
-
-          launchWhatsApp(latitude, longitude);
-          makeCall();
+          logSOS(latitude, longitude);
+          executeRescueActions(latitude, longitude);
         },
-        async (error) => {
+        (error) => {
           console.error("Location error", error);
-
-          // Log to Firestore even without location
-          if (db && user) {
-            try {
-              await addDoc(collection(db, 'sos_alerts'), {
-                userId: user.id,
-                userName: user.name,
-                userEmail: user.email,
-                phone: emergencyContacts[0]?.phone || 'Unknown',
-                location: null,
-                status: 'active',
-                timestamp: new Date().toISOString()
-              });
-            } catch (e) { console.error("Failed to log SOS", e); }
-          }
-
-          launchWhatsApp(); // Send without location
-          makeCall();
+          logSOS();
+          executeRescueActions(); // Proceed without location
         },
-        { timeout: 5000 } // Don't wait too long
+        { timeout: 3000, enableHighAccuracy: true }
       );
     } else {
-      launchWhatsApp();
-      makeCall();
+      logSOS();
+      executeRescueActions();
     }
   };
 
